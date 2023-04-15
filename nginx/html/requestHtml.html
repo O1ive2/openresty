@@ -1,0 +1,27 @@
+以下是一个简单的HTML前端页面，其中包含一个按钮，点击按钮会调用/backend接口，并将响应正文展示在页面上。
+
+html
+Copy code
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Example Frontend</title>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+	<h1>Example Frontend</h1>
+	<button id="fetch-html-button">Fetch HTML</button>
+	<div id="html-container"></div>
+	<script>
+		$(document).ready(function() {
+			// 点击按钮时发送GET请求到/backend接口
+			$("#fetch-html-button").click(function() {
+				$.get("/backend", function(data) {
+					// 将响应正文展示在页面上
+					$("#html-container").html(data);
+				});
+			});
+		});
+	</script>
+</body>
+</html>
