@@ -9,6 +9,7 @@ local function encrypt_path(key, path)
     local path_to_encrypt = string.sub(path, 2)
     local aes_256_cbc_sha512x2 = aes:new(key, nil, aes.cipher(128, "cbc"), {iv = "1234567890123456"})
     local encrypted = aes_256_cbc_sha512x2:encrypt(path_to_encrypt)
+    ngx.log(ngx.ERR, 'path_to_encrypt:'..path_to_encrypt)
     local encoded = ngx.encode_base64(encrypted)
     ngx.log(ngx.ERR, 'encoded:'..encoded)
     return '/' .. encoded
@@ -67,34 +68,31 @@ local function process_absolute_url(key, base_url, url_string)
 end
 
 local function process_relative_url(key, base_url, relative_path)
-    local absolute_url = base_url .. relative_path
-    return process_absolute_url(key, base_url, absolute_url)
+    local base_url_ends_with_slash = string.sub(base_url, -1) == "/"
+    local relative_path_starts_with_slash = string.sub(relative_path, 1, 1) == "/"
+
+    local combined_url
+
+    if base_url_ends_with_slash and relative_path_starts_with_slash then
+        combined_url = base_url .. string.sub(relative_path, 2)
+    elseif not base_url_ends_with_slash and not relative_path_starts_with_slash then
+        combined_url = base_url .. "/" .. relative_path
+    else
+        combined_url = base_url .. relative_path
+    end
+
+    return process_absolute_url(key, base_url, combined_url)
 end
+
 
 -- 1
 local function process_response(key, base_url, response)
-    ngx.log(ngx.ERR,'process_response,process_response,process_response')
     -- local pattern = "(%w+)=['\"]([^'\"]+)['\"]"
     local patterns = {
         '(href)=["\']([^"\']+)["\']',
         '(src)=["\']([^"\']+)["\']',
         '(action)=["\']([^"\']+)["\']'
     }
-    -- local processed_response, _ = string.gsub(response, pattern, function(attr, url)
-    --     ngx.log(ngx.ERR, "attr: ", attr)
-    --     ngx.log(ngx.ERR, "url: ", url)
-    --     local replaced_url
-    --     if is_absolute_url(url) then
-    --         replaced_url = process_absolute_url(key, base_url, url)
-    --     else
-    --         replaced_url = process_relative_url(key, base_url, url)
-    --     end
-    
-    --     ngx.log(ngx.ERR, "Matched string: ", url)
-    --     ngx.log(ngx.ERR, "Replaced URL: ", replaced_url)
-    
-    --     return attr .. "=\"" .. replaced_url .. "\""
-    -- end)
 
     local processed_response = response
 
@@ -120,9 +118,11 @@ end
 local _M = {}
 
 function _M.fetch_and_encrypt_url(key, target_url)
+    ngx.log(ngx.ERR, 'target_url:'..target_url)
     local httpc = http.new()
     local res, err = httpc:request_uri(target_url, {
         method = "GET",
+        follow_redirects = true
     })
 
     if not res then
