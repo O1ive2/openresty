@@ -9,7 +9,8 @@ local virtual_url_data = {
     real_url = 'http://real-url.com',
     timeout_threshold = 3600,
     access_rate_limit = 60,
-    max_access_count = 1000
+    max_access_count = 1000,
+    is_first = true
 }
 
 -- 将信息序列化为 JSON 字符串

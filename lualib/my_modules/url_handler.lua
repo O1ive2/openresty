@@ -1,51 +1,5 @@
 local redis_connector = require "redis_connector"
 
-local UrlHandler = {}
-
-
--- 添加新记录的函数
-function UrlHandler.add(virtual_url, real_url, access_rate_limit, max_access_count, timeout_threshold)
-    local client = connect_to_redis()
-
-    local url_data = {
-        real_url = real_url,
-        access_rate_limit = access_rate_limit,
-        max_access_count = max_access_count,
-        timeout_threshold = timeout_threshold
-    }
-
-    local json_data = cjson.encode(url_data)
-    client:hset("url", virtual_url, json_data)
-end
-
--- 更新记录的函数
-function UrlHandler.update(virtual_url, data)
-    local client = connect_to_redis()
-
-    local json_data = client:hget("url", virtual_url)
-    if json_data then
-        local url_data = cjson.decode(json_data)
-
-        for k, v in pairs(data) do
-            url_data[k] = v
-        end
-
-        local new_json_data = cjson.encode(url_data)
-        client:hset("url", virtual_url, new_json_data)
-    else
-        print("Virtual URL not found")
-    end
-end
-
--- 查询虚拟 URL 是否存在的函数
-function UrlHandler.exists(virtual_url)
-    local client = connect_to_redis()
-    local exists = client:hexists("url", virtual_url)
-    return exists == 1
-end
-
-
-
 -- 解析用户请求和提取URL和Cookie：
 local function parse_request()
     local request_uri = ngx.var.request_uri
@@ -56,7 +10,29 @@ local function parse_request()
 end
 
 
--- 查询虚拟URL表和其他表
+local function is_form_request(url)
+    local pattern = "(/form/)$"
+    if string.match(url, pattern) then
+        local last_question_mark = string.find(url, "?[^?]*$")
+        if last_question_mark then
+            return string.sub(url, 1, last_question_mark - 1)
+        else
+            return url
+        end
+    else
+        return nil
+    end
+end
+
+local function is_url_in_url_table(url)
+    local  is_virtual_url_exists,err= redis_connector.is_virtual_url_exists(url) 
+    if err then 
+        ngx.log(ngx.ERR, "Error checking if URL exists in the url table: ", err)
+        return false
+    else 
+        return is_virtual_url_exists
+    end
+end
 
 
 -- 判断URL是否为动态页面请求
@@ -109,5 +85,4 @@ end
 
 return {
     handle_request = handle_request,
-    UrlHandler = UrlHandler
 }

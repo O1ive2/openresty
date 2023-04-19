@@ -15,42 +15,6 @@ local function encrypt_path(key, path)
     return '/' .. encoded
 end
 
--- 它将相对URL转换为绝对URL
-local function resolve(base_url, relative_url)
-    local base_parsed = url.parse(base_url)
-    local relative_parsed = url.parse(relative_url)
-
-    if relative_parsed.scheme then
-        return url.build(relative_parsed)
-    end
-
-    local result = {}
-    result.scheme = base_parsed.scheme
-    result.host = base_parsed.host
-    result.port = base_parsed.port
-    result.userinfo = base_parsed.userinfo
-
-    if relative_parsed.path then
-        if string.sub(relative_parsed.path, 1, 1) == "/" then
-            result.path = relative_parsed.path
-        else
-            if not base_parsed.path then
-                result.path = "/" .. relative_parsed.path
-            else
-                result.path = string.gsub(base_parsed.path, "/?[^/]*$", "") .. "/" .. relative_parsed.path
-            end
-        end
-    else
-        result.path = base_parsed.path
-    end
-
-    result.params = relative_parsed.params
-    result.query = relative_parsed.query
-    result.fragment = relative_parsed.fragment
-
-    return url.build(result)
-end
-
 local function is_absolute_url(url)
     return url:find("http://") == 1 or url:find("https://") == 1
 end
@@ -87,7 +51,6 @@ end
 
 -- 1
 local function process_response(key, base_url, response)
-    -- local pattern = "(%w+)=['\"]([^'\"]+)['\"]"
     local patterns = {
         '(href)=["\']([^"\']+)["\']',
         '(src)=["\']([^"\']+)["\']',
@@ -105,10 +68,17 @@ local function process_response(key, base_url, response)
                 replaced_url = process_relative_url(key, base_url, url)
             end
 
-            ngx.log(ngx.ERR, "Matched string: ", url)
-            ngx.log(ngx.ERR, "Replaced URL: ", replaced_url)
+            local prefix = ""
+            if attr == "href" or attr == "src" then
+                prefix = "/regular/"
+            elseif attr == "action" then
+                prefix = "/form/"
+            end
 
-            return attr .. "=\"" .. replaced_url .. "\""
+            ngx.log(ngx.ERR, "Matched string: ", url)
+            ngx.log(ngx.ERR, "Replaced URL: ", prefix .. replaced_url)
+
+            return attr .. "=\""  .. replaced_url .. prefix .. "\""
         end)
     end
     ngx.log(ngx.ERR,'process_response END')
