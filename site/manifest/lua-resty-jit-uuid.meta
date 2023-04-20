@@ -1,0 +1,12 @@
+account = thibaultcha
+name = lua-resty-jit-uuid
+abstract = Fast and dependency-free uuid generation for OpenResty/LuaJIT
+author = Thibault Charbonnier (thibaultcha)
+is_original = yes
+license = mit
+repo_link = https://github.com/thibaultcha/lua-resty-jit-uuid
+lib_dir = lib
+doc_dir = lib
+version = 0.0.7
+main_module = lib/resty/jit-uuid.lua
+requires = luajit

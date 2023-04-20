@@ -1,5 +1,17 @@
 local redis_connector = require "redis_connector"
 local http = require "resty.http"
+local uuid = require "resty.jit-uuid"
+
+local function set_cookie_if_not_exists()
+    local cookie_value = ngx.var.cookie_value
+
+    if not cookie_value then
+        cookie_value = uuid()
+        ngx.header['Set-Cookie'] = 'value=' .. cookie_value .. '; Path=/; HttpOnly'
+    end
+
+    return cookie_value
+end
 
 local function get_current_url()
     local scheme = ngx.var.scheme -- 获取协议（http 或 https）
@@ -8,27 +20,14 @@ local function get_current_url()
     return scheme .. "://" .. host .. uri
 end
 
--- 解析用户请求和提取URL和Cookie：
-local function parse_request()
-    local request_uri = ngx.var.request_uri
-    local cookie_value = ngx.var.cookie_name -- 替换 name 为您要提取的cookie名称
-
-    -- 返回URL和Cookie值
-    return request_uri, cookie_value
-end
-
 -- 2.1 判断是否为表单请求
 local function is_form_request(url)
-    local pattern = "(/form/)$"
-    if string.match(url, pattern) then
-        local last_question_mark = string.find(url, "?[^?]*$")
-        if last_question_mark then
-            return string.sub(url, 1, last_question_mark - 1)
-        else
-            return url
-        end
+    local uri = ngx.var.scheme .. "://" .. ngx.var.host .. ngx.var.uri
+
+    if string.len(url) > string.len(uri) then
+        return uri
     else
-        return nil
+        return false
     end
 end
 
@@ -37,9 +36,16 @@ local function is_url_in_url_table(url)
     local  is_virtual_url_exists,err= redis_connector.is_virtual_url_exists(url) 
     if err then 
         ngx.log(ngx.ERR, "Error checking if URL exists in the url table: ", err)
+    end
+
+    if is_virtual_url_exists then
+        
+
+        -- to 2.3
+        return true
+    else
+        -- to 2.5
         return false
-    else 
-        return redis_connector.update_data(url, {is_first = false})
     end
 end
 
@@ -73,13 +79,13 @@ local function is_dynamic_request()
     if next(uri_args) ~= nil then
         return block_request_and_log("Request type is dynamic request!")
     end
+    return true
 
 end
 
 
 -- 2.4
-local function is_in_whitelist()
-    local request_url = get_current_url()
+local function is_in_whitelist(request_url)
     local is_whitelisted, err = redis_connector.is_url_in_whitelist(request_url)
 
     if err then
@@ -89,30 +95,41 @@ local function is_in_whitelist()
 
     if is_whitelisted then
         ngx.log(ngx.NOTICE, "Whitelisted URL found: ", request_url)
+        ngx.header['Set-Cookie'] = 'is_first_access=1; Path=/; HttpOnly'
         return ngx.exec("/api")
+
+    else 
+        return block_request_and_log("Whitelisted URL not found")
     end
 end
 
 -- 2.5
-local function is_cookie_match()
-    local request_url = get_current_url()
-    local cur_cookie = ngx.var.cookie_name
+local function is_cookie_match(request_url)
+    local cur_cookie = ngx.var.cookie_value
 
-    
-    local user ,err1 = redis_connector.get_user_by_url(request_url)
-    if err1 then
-        ngx.log(ngx.ERR, "Cantnot find user by current url: ", err1)
-        return
-    end
-
-    local cookie_of_user, err2 = redis_connector.get_cookie_by_user(user)
+    local user, err2 = redis_connector.get_user_by_cookie(cur_cookie)
     if err2 then
-        ngx.log(ngx.ERR, "Cantnot find cookie by user: ", err2)
+        ngx.log(ngx.ERR, "Cantnot find user by cookie: ", err2)
         return
     end
 
-    if cookie_of_user == cur_cookie then 
-        return true
+    local urls ,err1 = redis_connector.get_url_by_user(user)
+    if err1 then
+        ngx.log(ngx.ERR, "Cantnot find url by current user: ", err1)
+        return
+    end
+
+    local info ,err3 = redis_connector.get_data_in_url_table(request_url)
+
+    if err3 then
+        ngx.log(ngx.ERR, "Cantnot find : ", err3)
+        return
+    end
+    
+    if urls and info then
+        if urls[info['real_url']] == request_url then
+            return true
+        end
     end
 
     return false
@@ -161,7 +178,7 @@ local function is_access_too_fast(url)
         return
     end
     if info then 
-        if info.last_access - cur_time < 1000 then
+        if info.last_access - cur_time < 3 then
             ngx.log(ngx.ERR, 'Access too fast')
             ngx.exec("/html")
             return
@@ -174,7 +191,7 @@ local function pop_to_real_url(url)
     local info, err = redis_connector.get_data_in_url_table(url)
     if err then
         ngx.log(ngx.ERR, "Get data error: ", err)
-        return
+        return false
     end
     local update_data = {}
     if info then 
@@ -183,36 +200,112 @@ local function pop_to_real_url(url)
         local _ , err1 redis_connector.update_data(url, update_data)
         if err1 then
             ngx.log(ngx.ERR, "Update url data failed:"..err1)
+            return false
         end
-        ngx.exec(info.real_url)
+        return info.real_url
     end
 end
 
+
+
+
+local function generate_unique_user_identifier()
+    math.randomseed(os.time())
+    local random_number = math.random(100000000, 999999999) -- 生成一个 9 位数的随机数
+    local timestamp = os.time()
+    return "user_" .. timestamp .. "_" .. random_number
+end
+
+-- 4.2
+local function add_cookie_user()
+    local userId = generate_unique_user_identifier()
+    local cookie = ngx.var.cookie_value
+    local _, err = redis_connector.add_cookie_user(cookie, userId)
+    if err then
+        ngx.log(ngx.ERR, 'Add user_cookie failed:', err)
+        return
+    end
+end
+
+-- 4.3
+local function update_user_cookie()
+    local userId = generate_unique_user_identifier()
+    local cookie = ngx.var.cookie_value
+    
+end
+
+-- 4.1
+local function is_first_access()
+    local first_access = ngx.var.cookie_is_first_access
+    if first_access == 1 then 
+        -- 4.2
+        add_cookie_user()
+    else
+        -- 4.3
+
+    end
+end
 
 -- 判断URL是否为系统要防护的Web服务器外的链接地址
 local function is_external_link(url, protected_server_url)
     return not string.find(url, protected_server_url)
 end
 
-
-
--- 检查请求频率
-local function is_request_rate_exceeded(key, max_rate)
-    -- 使用Redis的INCRBY命令计算请求次数，然后使用EXPIRE设置超时
-    -- 检查请求次数是否超过 max_rate
-    -- 返回 true 或 false
-end
-
-local function rewrite_urls(response)
-    -- 在这里添加您的地址重写模块代码，处理 response 变量中的内容
-    -- ...
-end
-
-
-
 local function handle_request()
     -- 在这里处理请求，例如检查 URL 和 Cookie 等
-    -- ...
+    local cookie = set_cookie_if_not_exists()
+    local request_url = get_current_url()
+
+    -- 2.1
+    if is_form_request(request_url) then
+        request_url = is_form_request(request_url)
+    end
+
+    -- 2.2
+    if is_url_in_url_table(request_url) then 
+        -- 2.3
+         if is_dynamic_request() then 
+            -- 2.4
+            is_in_whitelist()
+         end
+    else
+        -- 2.5
+        ngx.header['Set-Cookie'] = 'is_first_access=0; Path=/; HttpOnly'
+        if is_cookie_match(request_url) then 
+            -- 2.6
+            is_url_expire(request_url)
+
+            -- 2.7
+            is_max_count(request_url)
+
+            -- 2.8
+            is_access_too_fast(request_url)
+        else
+            return block_request_and_log("Cookie and current url cannot match")
+        end
+
+        -- 2.9
+        local real_url = pop_to_real_url(request_url)
+
+        if not real_url then
+            ngx.exec(real_url)
+
+            local httpc = http.new()
+            local res, err = httpc:request_uri(real_url, {
+                method = "GET",
+                follow_redirects = true
+            })
+
+            -- if not res then
+            --     return nil, err
+            -- end
+        
+            -- local content = res.body
+            -- local processed_content = process_response(key, target_url, content)
+            -- return processed_content
+        end
+
+    end
 
     -- 将请求转发到后端服务器并获取响应
     local res = ngx.location.capture("/proxy_pass")

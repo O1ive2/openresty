@@ -46,3 +46,21 @@ module lua-resty-aes-0.11
   section 2242 3732 copyright and license
 
 # END lua-resty-aes
+# BEGIN lua-resty-jit-uuid
+
+dist lua-resty-jit-uuid-0.0.7
+  aliases resty.jit.uuid
+  modules lua-resty-jit-uuid-0.0.7
+
+module lua-resty-jit-uuid-0.0.7
+  aliases resty.jit.uuid
+  section 18 5205 lua-resty-jit-uuid
+  section 304 845 motivation
+  section 845 2489 usage
+  section 2489 2748 installation
+  section 2748 2872 documentation
+  section 2872 4445 benchmarks
+  section 4445 4598 contributions
+  section 4598 5205 license
+
+# END lua-resty-jit-uuid
