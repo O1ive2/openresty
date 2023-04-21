@@ -1,6 +1,7 @@
 local url = require("socket.url")
 local aes = require "resty.aes"
 local redis_connector = require "redis_connector"
+local uuid = require "resty.jit-uuid"
 
 -- 5.2
 local function is_in_whitelist(url)
@@ -149,3 +150,53 @@ local function processed_response(base_url, response, user)
     return processed_response
 end
 
+local function is_external_link(url, protected_server_url)
+    return not string.find(url, protected_server_url)
+end
+
+local _M = {}
+
+function _M.process_url_rewrite(res)
+    local first_access = ngx.var.cookie_is_first_access
+    local cookie = ngx.var.cookie_value
+
+    -- 4.1
+    if first_access == 1 then
+        -- 4.2
+        local unique_identifier = uuid()
+        local _, err = redis_connector.add_cookie_user(cookie, unique_identifier)
+        if err then
+            ngx.log(ngx.ERR, "Error add_cookie_user:"..err)
+            return 
+        end
+    else
+        -- 4.3
+        local client_cookies = ngx.var.http_cookie or ""
+        local cookie_name = "value"
+        local new_value = uuid()
+        local new_cookie = new_value..'; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
+        local update_cookies = string.gsub(client_cookies, cookie_name .. "=(.-);", cookie_name .. "=" .. new_cookie .. ";")
+        ngx.header['Set-Cookie'] = update_cookies
+        local user, err0 = redis_connector.get_user_by_cookie(cookie)
+        if err0 then 
+            ngx.log(ngx.ERR, 'Error get_user_by_cookie:'..err0)
+            return 
+        end
+
+        local _, err = redis_connector.delete_cookie_user(cookie)
+        if err then 
+            ngx.log(ngx.ERR, 'Error delete_cookie_user:'..err)
+            return 
+        end
+
+        local _, err2 = redis_connector.add_cookie_user(new_value, user)
+        if err2 then 
+            ngx.log(ngx.ERR, 'Error add_cookie_user:'..err2)
+            return 
+        end
+    end
+
+    -- 5.1
+    local request_url = is_absolute_url(res.effective_url)
+
+end
