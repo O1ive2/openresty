@@ -1,13 +1,14 @@
 local redis_connector = require "redis_connector"
 local http = require "resty.http"
 local uuid = require "resty.jit-uuid"
+local rewrite_module = require 'my_modules.rewrite_module'
 
 local function set_cookie_if_not_exists()
     local cookie_value = ngx.var.cookie_value
 
     if not cookie_value then
         cookie_value = uuid()
-        ngx.header['Set-Cookie'] = 'value=' .. cookie_value .. '; Path=/; HttpOnly'
+        ngx.header['Set-Cookie'] = 'value=' .. cookie_value .. '; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
     end
 
     return cookie_value
@@ -95,7 +96,10 @@ local function is_in_whitelist(request_url)
 
     if is_whitelisted then
         ngx.log(ngx.NOTICE, "Whitelisted URL found: ", request_url)
-        ngx.header['Set-Cookie'] = 'is_first_access=1; Path=/; HttpOnly'
+        local client_cookies = ngx.var.http_cookie or ""
+        local new_cookie = 'is_first_access=1; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
+        client_cookies = client_cookies .. "; " .. new_cookie
+        ngx.header['Set-Cookie'] = client_cookies
         return ngx.exec("/api")
 
     else 
@@ -247,9 +251,7 @@ local function is_first_access()
 end
 
 -- 判断URL是否为系统要防护的Web服务器外的链接地址
-local function is_external_link(url, protected_server_url)
-    return not string.find(url, protected_server_url)
-end
+
 
 local function handle_request()
     -- 在这里处理请求，例如检查 URL 和 Cookie 等
@@ -270,7 +272,11 @@ local function handle_request()
          end
     else
         -- 2.5
-        ngx.header['Set-Cookie'] = 'is_first_access=0; Path=/; HttpOnly'
+        local client_cookies = ngx.var.http_cookie or ""
+        local new_cookie = 'is_first_access=0; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
+        client_cookies = client_cookies .. "; " .. new_cookie
+        ngx.header['Set-Cookie'] = client_cookies
+
         if is_cookie_match(request_url) then 
             -- 2.6
             is_url_expire(request_url)
@@ -287,7 +293,7 @@ local function handle_request()
         -- 2.9
         local real_url = pop_to_real_url(request_url)
 
-        if not real_url then
+        if real_url then
             ngx.exec(real_url)
 
             local httpc = http.new()
@@ -296,29 +302,21 @@ local function handle_request()
                 follow_redirects = true
             })
 
-            -- if not res then
-            --     return nil, err
-            -- end
+            if not res then
+                return nil, err
+            end
         
-            -- local content = res.body
-            -- local processed_content = process_response(key, target_url, content)
-            -- return processed_content
+            local encrypted_html, err1 = rewrite_module.process_url_rewrite(real_url,res)
+
+            if not encrypted_html then
+                ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+                ngx.say("Error: ", err1)
+            else
+                ngx.header.content_type = "text/html; charset=utf-8"
+                ngx.say(encrypted_html)
+            end
         end
-
     end
-
-    -- 将请求转发到后端服务器并获取响应
-    local res = ngx.location.capture("/proxy_pass")
-    if res.status ~= ngx.HTTP_OK then
-        ngx.status = res.status
-        return ngx.exit(res.status)
-    end
-
-    -- 对响应中的 URL 进行重写
-    local rewritten_response = rewrite_urls(res.body)
-
-    -- 将重写后的响应发送给客户端
-    ngx.say(rewritten_response)
 end
 
 return {

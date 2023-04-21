@@ -4,6 +4,7 @@ local aes = require "resty.aes"
 local str = require "resty.string"
 
 
+
 -- 3
 local function encrypt_path(key, path)
     local path_to_encrypt = string.sub(path, 2)
@@ -84,6 +85,8 @@ local function process_response(key, base_url, response)
     ngx.log(ngx.ERR,'process_response END')
     return processed_response
 end
+
+
 
 local _M = {}
 

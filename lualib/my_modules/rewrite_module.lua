@@ -74,6 +74,7 @@ local function process_absolute_url(key, url_string, user)
         local urls, err1 = redis_connector.get_url_by_user(user)
         if err1 then
             ngx.log(ngx.ERR,"Error get_url_by_user:" ,err1)
+            return
         end
 
         urls[url_string] = encrypted_path
@@ -81,6 +82,7 @@ local function process_absolute_url(key, url_string, user)
         local _, err2 = redis_connector.add_user_url(user, urls)
         if err2 then
             ngx.log(ngx.ERR,"Error add_user_url:" ,err2)
+            return 
         end
 
         local info = {
@@ -102,21 +104,10 @@ local function process_absolute_url(key, url_string, user)
 end
 
 local function process_relative_url(key, base_url, relative_path, user)
-    local base_url_ends_with_slash = string.sub(base_url, -1) == "/"
-    local relative_path_starts_with_slash = string.sub(relative_path, 1, 1) == "/"
-
-    local combined_url
-
-    if base_url_ends_with_slash and relative_path_starts_with_slash then
-        combined_url = base_url .. string.sub(relative_path, 2)
-    elseif not base_url_ends_with_slash and not relative_path_starts_with_slash then
-        combined_url = base_url .. "/" .. relative_path
-    else
-        combined_url = base_url .. relative_path
-    end
-
+    local combined_url = url.absolute(base_url, relative_path)
     return process_absolute_url(key, combined_url, user)
 end
+
 
 -- 5.4
 local function processed_response(base_url, response, user)
@@ -128,7 +119,11 @@ local function processed_response(base_url, response, user)
 
     local processed_response = response
 
-    local key = redis_connector.get_key_by_user(user)
+    local key, err = redis_connector.get_key_by_user(user)
+    if err then
+        ngx.log(ngx.ERR, 'Error get_key_by_user:'..err)
+        return
+    end
 
     for _, pattern in ipairs(patterns) do
         processed_response, _ = string.gsub(processed_response, pattern, function(attr, url)
@@ -139,14 +134,9 @@ local function processed_response(base_url, response, user)
                 replaced_url = process_relative_url(key, base_url, url, user)
             end
 
-            ngx.log(ngx.ERR, "Matched string: ", url)
-            ngx.log(ngx.ERR, "Replaced URL: ", replaced_url)
-
-            
             return attr .. "=\""  .. replaced_url  .. "\""
         end)
     end
-    ngx.log(ngx.ERR,'process_response END')
     return processed_response
 end
 
@@ -156,7 +146,7 @@ end
 
 local _M = {}
 
-function _M.process_url_rewrite(res)
+function _M.process_url_rewrite(base_url,res)
     local first_access = ngx.var.cookie_is_first_access
     local cookie = ngx.var.cookie_value
 
@@ -196,7 +186,18 @@ function _M.process_url_rewrite(res)
         end
     end
 
-    -- 5.1
-    local request_url = is_absolute_url(res.effective_url)
+    local _cookie = ngx.var.cookie_value
+
+    local user, err = redis_connector.get_user_by_cookie(_cookie)
+
+    if err then
+        ngx.log(ngx.ERR, 'Error get_user_by_cookie:'..err)
+        return 
+    end
+
+    -- 5.1 - 5.9
+    return processed_response(base_url, res.body, user)
 
 end
+
+return _M
