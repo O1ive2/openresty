@@ -157,14 +157,14 @@ local function get_user_by_cookie(cookie)
         return nil
     end
 
-    return cookie
+    return user
 end
 
 local function delete_cookie_user(cookie)
     local client = connect_to_redis()
     if not client then return false end
 
-    local ok, err = client:hdel("user_cookie", cookie)
+    local ok, err = client:hdel("cookie_user", cookie)
     client:close()
     if not ok then
         print("Error deleting cookie_user record: ", err)
@@ -205,8 +205,7 @@ end
 local function get_key_by_user(user)
     local client = connect_to_redis()
     if not client then return false end
-
-    local key = generate_random_key()
+    
     local key, err = client:hget("user_key", user)
     client:close()
     if not key then
