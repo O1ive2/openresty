@@ -1,8 +1,68 @@
-2023/04/25 21:16:36 [notice] 6939#0: signal process started
-2023/04/25 21:16:38 [error] 6941#0: *444 [lua] fetchhomepage.lua:10: target_url:http://pwb.com/index.html, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
-2023/04/25 21:16:38 [error] 6941#0: *444 attempt to set ngx.status after sending out response headers, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
-2023/04/25 21:16:38 [error] 6941#0: *466 open() "/usr/local/openresty/nginx/html/JlEpFYo8cMfy4vw8wzKnqA==" failed (2: No such file or directory), client: 127.0.0.1, server: pwb.com, request: "GET /JlEpFYo8cMfy4vw8wzKnqA== HTTP/1.1", host: "pwb.com", referrer: "http://rws.com/"
-2023/04/25 21:17:00 [error] 6941#0: *468 open() "/usr/local/openresty/nginx/html/51R9yDoXxUE2sUyX3CINNA==" failed (2: No such file or directory), client: 127.0.0.1, server: pwb.com, request: "GET /51R9yDoXxUE2sUyX3CINNA== HTTP/1.1", host: "pwb.com", referrer: "http://rws.com/"
-2023/04/25 22:05:13 [notice] 7405#0: signal process started
-2023/04/25 22:05:18 [error] 7407#0: *472 [lua] fetchhomepage.lua:13: target_url:http://pwb.com/index.html, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
-2023/04/25 22:05:18 [error] 7407#0: *472 [lua] check_transform_moudle.lua:53: is_in_whitelist(): Request blocked: Whitelisted URL not found, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/26 00:39:37 [notice] 9355#0: signal process started
+2023/04/26 00:40:07 [error] 9357#0: *539 [lua] request_handle.lua:7: url: http://rws.com/index.html, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/26 00:40:07 [error] 9357#0: *539 [lua] response_handle.lua:2: <!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+</head>
+<body>
+    <h1>Welcome to Home Page</h1>
+    <p><a href="/page1.html">Go to Page 1</a></p>
+    <p><a href="page2.html">Go to Page 2</a></p>
+    <p><img src="image.jpg" alt="Sample image"></p>
+</body>
+</html> while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", upstream: "http://127.0.0.1:80/index.html", host: "rws.com"
+2023/04/26 00:40:07 [error] 9357#0: *539 [lua] response_handle.lua:2:  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", upstream: "http://127.0.0.1:80/index.html", host: "rws.com"
+2023/04/26 00:40:07 [error] 9357#0: *539 [lua] request_handle.lua:7: url: http://rws.com/IMAGE.JPG, client: 127.0.0.1, server: rws.com, request: "GET /IMAGE.JPG HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/26 00:40:07 [error] 9357#0: *543 open() "/usr/local/openresty/nginx/html/IMAGE.JPG" failed (2: No such file or directory), client: 127.0.0.1, server: pwb.com, request: "GET /IMAGE.JPG HTTP/1.0", host: "pwb.com", referrer: "http://rws.com/index.html"
+2023/04/26 00:40:07 [error] 9357#0: *539 [lua] response_handle.lua:2: <html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>openresty/1.21.4.1</center>
+</body>
+</html>
+ while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /IMAGE.JPG HTTP/1.1", upstream: "http://127.0.0.1:80/IMAGE.JPG", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/26 00:40:07 [error] 9357#0: *539 [lua] response_handle.lua:2:  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /IMAGE.JPG HTTP/1.1", upstream: "http://127.0.0.1:80/IMAGE.JPG", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/26 00:40:42 [error] 9357#0: *539 [lua] request_handle.lua:7: url: http://rws.com/page1.html, client: 127.0.0.1, server: rws.com, request: "GET /page1.html HTTP/1.1", host: "rws.com"
+2023/04/26 00:40:42 [error] 9357#0: *539 [lua] response_handle.lua:2: <!DOCTYPE html>
+<html>
+<head>
+    <title>Page 1</title>
+</head>
+<body>
+    <h1>Welcome to Page 1</h1>
+    <p><a href="/index.html">Go to Home Page</a></p>
+    <p><a href="/page2.html">Go to Page 2</a></p>
+</body>
+</html>
+ while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /page1.html HTTP/1.1", upstream: "http://127.0.0.1:80/page1.html", host: "rws.com"
+2023/04/26 00:40:42 [error] 9357#0: *539 [lua] response_handle.lua:2:  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /page1.html HTTP/1.1", upstream: "http://127.0.0.1:80/page1.html", host: "rws.com"
+2023/04/26 00:41:17 [error] 9357#0: *539 [lua] request_handle.lua:7: url: http://rws.com/page2.html, client: 127.0.0.1, server: rws.com, request: "GET /page2.html HTTP/1.1", host: "rws.com", referrer: "http://rws.com/"
+2023/04/26 00:41:17 [error] 9357#0: *539 [lua] response_handle.lua:2: <!DOCTYPE html>
+<html>
+<head>
+    <title>Page 2</title>
+</head>
+<body>
+    <h1>Welcome to Page 2</h1>
+    <p><a href="/index.html">Go to Home Page</a></p>
+    <p><a href="/page1.html">Go to Page 1</a></p>
+    <form action="/submit" method="post">
+        <input type="text" name="field" placeholder="Enter some text">
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html> while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /page2.html HTTP/1.1", upstream: "http://127.0.0.1:80/page2.html", host: "rws.com", referrer: "http://rws.com/"
+2023/04/26 00:41:17 [error] 9357#0: *539 [lua] response_handle.lua:2:  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /page2.html HTTP/1.1", upstream: "http://127.0.0.1:80/page2.html", host: "rws.com", referrer: "http://rws.com/"
+2023/04/26 00:41:25 [error] 9357#0: *539 [lua] request_handle.lua:7: url: http://rws.com/INDEX.HTML, client: 127.0.0.1, server: rws.com, request: "GET /INDEX.HTML HTTP/1.1", host: "rws.com", referrer: "http://rws.com/page2.html"
+2023/04/26 00:41:25 [error] 9357#0: *549 open() "/usr/local/openresty/nginx/html/INDEX.HTML" failed (2: No such file or directory), client: 127.0.0.1, server: pwb.com, request: "GET /INDEX.HTML HTTP/1.0", host: "pwb.com", referrer: "http://rws.com/page2.html"
+2023/04/26 00:41:25 [error] 9357#0: *539 [lua] response_handle.lua:2: <html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>openresty/1.21.4.1</center>
+</body>
+</html>
+ while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /INDEX.HTML HTTP/1.1", upstream: "http://127.0.0.1:80/INDEX.HTML", host: "rws.com", referrer: "http://rws.com/page2.html"
+2023/04/26 00:41:25 [error] 9357#0: *539 [lua] response_handle.lua:2:  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /INDEX.HTML HTTP/1.1", upstream: "http://127.0.0.1:80/INDEX.HTML", host: "rws.com", referrer: "http://rws.com/page2.html"

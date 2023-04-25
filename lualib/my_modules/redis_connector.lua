@@ -27,13 +27,19 @@ end
 
 local function get_data_in_url_table(virtual_url)
     local client = connect_to_redis()
-    if not client then return false end
+    if not client then return end
 
     local data, err = client:hget("url", virtual_url)
     client:close()
-    if err then        
-        return false
+    if err then
+        ngx.log(ngx.ERR,"Error get_data_in_url_table: ", err)    
+        return
     end
+
+    if data == cjson.null or not data then
+        return {}
+    end
+
     return cjson.decode(data)
 end
 
