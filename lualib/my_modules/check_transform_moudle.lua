@@ -2,11 +2,12 @@ local redis_connector = require "redis_connector"
 local http = require "resty.http"
 local uuid = require "resty.jit-uuid"
 local rewrite_module = require 'my_modules.rewrite_module'
+uuid.seed()
 
 local function set_cookie_if_not_exists()
     local cookie_value = ngx.var.cookie_value
-
     if not cookie_value then
+        
         cookie_value = uuid()
         ngx.header['Set-Cookie'] = 'value=' .. cookie_value .. '; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
     end
@@ -25,8 +26,8 @@ end
 local function is_form_request(url)
     local uri = ngx.var.scheme .. "://" .. ngx.var.host .. ngx.var.uri
 
-    if string.len(url) > string.len(uri) then
-        return uri
+    if string.len(url) >= string.len(uri) then
+        return url
     else
         return false
     end
@@ -40,8 +41,6 @@ local function is_url_in_url_table(url)
     end
 
     if is_virtual_url_exists then
-        
-
         -- to 2.3
         return true
     else
@@ -72,6 +71,7 @@ local function is_dynamic_request()
     -- 根据请求方法判断请求是否为动态
     for _, dynamic_method in ipairs(dynamic_methods) do
         if method == dynamic_method then
+            
             return block_request_and_log("Request type is dynamic request!")
         end
     end
@@ -84,7 +84,6 @@ local function is_dynamic_request()
 
 end
 
-
 -- 2.4
 local function is_in_whitelist(request_url)
     local is_whitelisted, err = redis_connector.is_url_in_whitelist(request_url)
@@ -95,13 +94,27 @@ local function is_in_whitelist(request_url)
     end
 
     if is_whitelisted then
-        ngx.log(ngx.NOTICE, "Whitelisted URL found: ", request_url)
-        local client_cookies = ngx.var.http_cookie or ""
-        local new_cookie = 'is_first_access=1; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
-        client_cookies = client_cookies .. "; " .. new_cookie
-        ngx.header['Set-Cookie'] = client_cookies
-        return ngx.exec("/api")
+        local new_cookie = 'is_first_access=true; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
+        ngx.header['Set-Cookie'] = new_cookie
+        local httpc = http.new()
+            local res, err = httpc:request_uri(request_url, {
+                method = "GET",
+                follow_redirects = true
+            })
 
+            if not res then
+                return nil, err
+            end
+
+            local encrypted_html, err1 = rewrite_module.process_url_rewrite(request_url,res.body)
+
+            if not encrypted_html then
+                ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+                ngx.say("Error: ", err1)
+            else
+                ngx.header.content_type = "text/html; charset=utf-8"
+                ngx.say(encrypted_html)
+            end
     else 
         return block_request_and_log("Whitelisted URL not found")
     end
@@ -132,6 +145,7 @@ local function is_cookie_match(request_url)
     
     if urls and info then
         if urls[info['real_url']] == request_url then
+            ngx.log(ngx.ERR, "cookie url match")
             return true
         end
     end
@@ -212,68 +226,22 @@ end
 
 
 
-
-local function generate_unique_user_identifier()
-    math.randomseed(os.time())
-    local random_number = math.random(100000000, 999999999) -- 生成一个 9 位数的随机数
-    local timestamp = os.time()
-    return "user_" .. timestamp .. "_" .. random_number
-end
-
--- 4.2
-local function add_cookie_user()
-    local userId = generate_unique_user_identifier()
-    local cookie = ngx.var.cookie_value
-    local _, err = redis_connector.add_cookie_user(cookie, userId)
-    if err then
-        ngx.log(ngx.ERR, 'Add user_cookie failed:', err)
-        return
-    end
-end
-
--- 4.3
-local function update_user_cookie()
-    local userId = generate_unique_user_identifier()
-    local cookie = ngx.var.cookie_value
-    
-end
-
--- 4.1
-local function is_first_access()
-    local first_access = ngx.var.cookie_is_first_access
-    if first_access == 1 then 
-        -- 4.2
-        add_cookie_user()
-    else
-        -- 4.3
-
-    end
-end
-
 -- 判断URL是否为系统要防护的Web服务器外的链接地址
 
 
-local function handle_request()
+local function handle_request(request_url, target_url)
     -- 在这里处理请求，例如检查 URL 和 Cookie 等
     local cookie = set_cookie_if_not_exists()
-    local request_url = get_current_url()
+    -- local request_url = get_current_url()
 
     -- 2.1
-    if is_form_request(request_url) then
-        request_url = is_form_request(request_url)
-    end
+    request_url = is_form_request(request_url)
 
     -- 2.2
     if is_url_in_url_table(request_url) then 
-        -- 2.3
-         if is_dynamic_request() then 
-            -- 2.4
-            is_in_whitelist()
-         end
-    else
         -- 2.5
         local client_cookies = ngx.var.http_cookie or ""
-        local new_cookie = 'is_first_access=0; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
+        local new_cookie = 'is_first_access=false; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
         client_cookies = client_cookies .. "; " .. new_cookie
         ngx.header['Set-Cookie'] = client_cookies
 
@@ -294,7 +262,6 @@ local function handle_request()
         local real_url = pop_to_real_url(request_url)
 
         if real_url then
-            ngx.exec(real_url)
 
             local httpc = http.new()
             local res, err = httpc:request_uri(real_url, {
@@ -305,7 +272,7 @@ local function handle_request()
             if not res then
                 return nil, err
             end
-        
+
             local encrypted_html, err1 = rewrite_module.process_url_rewrite(real_url,res)
 
             if not encrypted_html then
@@ -316,9 +283,32 @@ local function handle_request()
                 ngx.say(encrypted_html)
             end
         end
+    else
+        -- 2.3
+        is_dynamic_request() 
+        -- 2.4
+        is_in_whitelist(request_url)
+
+            
     end
 end
 
-return {
-    handle_request = handle_request,
-}
+local _M = {}
+
+function _M.fetch_and_encrypt_url(request_url, target_url)
+    local httpc = http.new()
+    local res, err = httpc:request_uri(request_url, {
+        method = "GET",
+    })
+
+    if not res then
+        ngx.log(ngx.ERR,'not res:',err)
+        return nil, err
+    end
+
+    local content = res.body
+    local processed_content = handle_request(request_url,target_url)
+    return processed_content
+end
+
+return _M

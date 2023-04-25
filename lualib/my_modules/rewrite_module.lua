@@ -2,57 +2,15 @@ local url = require("socket.url")
 local aes = require "resty.aes"
 local redis_connector = require "redis_connector"
 local uuid = require "resty.jit-uuid"
+local redis = require "resty.redis"
+uuid.seed()
 
--- 5.2
-local function is_in_whitelist(url)
-    local is_whitelisted, err = redis_connector.is_url_in_whitelist(url)
-
-    if err then
-        ngx.log(ngx.ERR, "Error checking whitelist: ", err)
-        return
-    end
-
-    if is_whitelisted then
-        -- turn 5.9
-        return true
-    end
-
-    -- turn 5.3
-    return false
-end
-
--- 5.3
-local function check_in_user_url(url,cookie)
-    local user, err = redis_connector.get_user_by_cookie(cookie)
-    if err then
-        ngx.log(ngx.ERR, "Error get_user_by_cookie: ", err)
-        return 
-    end
-    
-    local urls ,err2 = redis_connector.get_url_by_user(user)
-    if err2 then
-        ngx.log(ngx.ERR, "Error get_url_by_user: ", err2)
-        return 
-    end
-
-    if urls and urls[url]then
-        -- turn 5.7
-        return true
-
-    else
-        --turn 5.4
-        return false
-    end
-
-end
 
 local function encrypt_path(key, path)
     local path_to_encrypt = string.sub(path, 2)
     local aes_256_cbc_sha512x2 = aes:new(key, nil, aes.cipher(128, "cbc"), {iv = "1234567890123456"})
     local encrypted = aes_256_cbc_sha512x2:encrypt(path_to_encrypt)
-    ngx.log(ngx.ERR, 'path_to_encrypt:'..path_to_encrypt)
     local encoded = ngx.encode_base64(encrypted)
-    ngx.log(ngx.ERR, 'encoded:'..encoded)
     return '/' .. encoded
 end
 
@@ -69,14 +27,16 @@ local function process_absolute_url(key, url_string, user)
         local parsed_url = url.parse(url_string)
         local path = parsed_url.path
         local encrypted_path = encrypt_path(key, path)
+        
         parsed_url.path = encrypted_path
         local result_url = url.build(parsed_url)
+
         local urls, err1 = redis_connector.get_url_by_user(user)
         if err1 then
             ngx.log(ngx.ERR,"Error get_url_by_user:" ,err1)
             return
         end
-
+        -- 5.4
         urls[url_string] = encrypted_path
         
         local _, err2 = redis_connector.add_user_url(user, urls)
@@ -92,13 +52,15 @@ local function process_absolute_url(key, url_string, user)
             access_count = 0,
             last_access = os.time()
         }
-        local _, err3 = redis_connector.update_data( encrypted_path,info)
+        local _, err3 = redis_connector.add_url_table_data(result_url,info)
         if err3 then
-            ngx.log(ngx.ERR,"Error update_data:" ,err3)
+            ngx.log(ngx.ERR,"Error add_url_table_data:" ,err3)
         end
 
         return result_url
     end
+
+    
 
     
 end
@@ -109,7 +71,16 @@ local function process_relative_url(key, base_url, relative_path, user)
 end
 
 
--- 5.4
+local function process_url(key, base_url, url, user)
+    local replaced_url
+    if is_absolute_url(url) then
+        replaced_url = process_absolute_url(key, url, user)
+    else
+        replaced_url = process_relative_url(key, base_url, url, user)
+    end
+    return replaced_url
+end
+
 local function processed_response(base_url, response, user)
     local patterns = {
         '(href)=["\']([^"\']+)["\']',
@@ -117,28 +88,38 @@ local function processed_response(base_url, response, user)
         '(action)=["\']([^"\']+)["\']'
     }
 
-    local processed_response = response
-
-    local key, err = redis_connector.get_key_by_user(user)
+    local key, err = redis_connector.get_key_by_user(user)    
     if err then
         ngx.log(ngx.ERR, 'Error get_key_by_user:'..err)
         return
     end
 
-    for _, pattern in ipairs(patterns) do
-        processed_response, _ = string.gsub(processed_response, pattern, function(attr, url)
-            local replaced_url
-            if is_absolute_url(url) then
-                replaced_url = process_absolute_url(key, url, user)
-            else
-                replaced_url = process_relative_url(key, base_url, url, user)
-            end
+    -- 存储原始 URL 信息
+    local url_infos = {}
 
-            return attr .. "=\""  .. replaced_url  .. "\""
+    -- 提取 URL 信息
+    for _, pattern in ipairs(patterns) do
+        response = string.gsub(response, pattern, function(attr, url)
+            table.insert(url_infos, {attr = attr, url = url})
+            return attr .. "=\""  .. url  .. "\""
         end)
     end
-    return processed_response
+
+    -- 处理 URL
+    local replaced_urls = {}
+    for _, url_info in ipairs(url_infos) do
+        local replaced_url = process_url(key, base_url, url_info.url, user)
+        replaced_urls[url_info.url] = replaced_url
+    end
+
+    -- 使用处理后的 URL 替换原始 URL
+    for original_url, replaced_url in pairs(replaced_urls) do
+        response = string.gsub(response, original_url, replaced_url)
+    end
+
+    return response
 end
+
 
 local function is_external_link(url, protected_server_url)
     return not string.find(url, protected_server_url)
@@ -149,14 +130,19 @@ local _M = {}
 function _M.process_url_rewrite(base_url,res)
     local first_access = ngx.var.cookie_is_first_access
     local cookie = ngx.var.cookie_value
-
     -- 4.1
-    if first_access == 1 then
+    if first_access == "true" then
         -- 4.2
         local unique_identifier = uuid()
         local _, err = redis_connector.add_cookie_user(cookie, unique_identifier)
+        local _, err1 = redis_connector.add_user_key(unique_identifier)
         if err then
             ngx.log(ngx.ERR, "Error add_cookie_user:"..err)
+            return 
+        end
+
+        if err1 then
+            ngx.log(ngx.ERR, "Error add_user_key:"..err1)
             return 
         end
     else
@@ -180,8 +166,14 @@ function _M.process_url_rewrite(base_url,res)
         end
 
         local _, err2 = redis_connector.add_cookie_user(new_value, user)
+        local _, err1 = redis_connector.add_user_key(user)
         if err2 then 
             ngx.log(ngx.ERR, 'Error add_cookie_user:'..err2)
+            return 
+        end
+
+        if err1 then
+            ngx.log(ngx.ERR, "Error add_user_key:"..err1)
             return 
         end
     end
@@ -196,7 +188,7 @@ function _M.process_url_rewrite(base_url,res)
     end
 
     -- 5.1 - 5.9
-    return processed_response(base_url, res.body, user)
+    return processed_response(base_url, res, user)
 
 end
 
