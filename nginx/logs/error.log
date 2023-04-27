@@ -1,68 +1,151 @@
-2023/04/26 00:39:37 [notice] 9355#0: signal process started
-2023/04/26 00:40:07 [error] 9357#0: *539 [lua] request_handle.lua:7: url: http://rws.com/index.html, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
-2023/04/26 00:40:07 [error] 9357#0: *539 [lua] response_handle.lua:2: <!DOCTYPE html>
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] request_handle.lua:12: 2.1, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] request_handle.lua:15: 2.2, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] request_handle.lua:18: 2.2 - 2.3, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] request_handle.lua:22: 2.3 - 2.4, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] check_transform_moudle.lua:60: is_in_whitelist(): Error is_in_whitelist param request_url: http://rws.com/index.html, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] request_handle.lua:27: 2.4 - 3, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] response_handle.lua:11: response_handle(): 3 - 4.1 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] response_handle.lua:17: response_handle(): 4.1 - 4.2 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] response_handle.lua:63: response_handle(): 5 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:20: is_absolute_url(): 5.1 - 5.2 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:26: process_relative_url(): 5.2 - 5.3 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:46: process_relative_url(): it is protect link  while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:51: process_relative_url(): it is not in whitelist while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:52: process_relative_url(): 5.3 - 5.4 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:11: encrypt_path(): key: pCWmJvqpeY0Z1DKP while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:67: process_relative_url(): 5.4 - 5.5 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:75: process_relative_url(): 5.5 - 5.6 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:87: process_relative_url(): 5.6 - 5.8 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:143: processed_response(): 5.8 - 5.9 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:20: is_absolute_url(): 5.1 - 5.2 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:26: process_relative_url(): 5.2 - 5.3 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:46: process_relative_url(): it is protect link  while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:51: process_relative_url(): it is not in whitelist while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:52: process_relative_url(): 5.3 - 5.4 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:11: encrypt_path(): key: pCWmJvqpeY0Z1DKP while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:67: process_relative_url(): 5.4 - 5.5 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:75: process_relative_url(): 5.5 - 5.6 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:87: process_relative_url(): 5.6 - 5.8 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] rewrite_module.lua:143: processed_response(): 5.8 - 5.9 while sending response to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", host: "rws.com"
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] body_filter.lua:2: modified_body:<!DOCTYPE html>
 <html>
 <head>
     <title>Home</title>
 </head>
 <body>
     <h1>Welcome to Home Page</h1>
-    <p><a href="/page1.html">Go to Page 1</a></p>
-    <p><a href="page2.html">Go to Page 2</a></p>
-    <p><img src="image.jpg" alt="Sample image"></p>
+    <p><a href="http://rws.com/Dxoh3qB+EK5lnEAlmVA1ow==">Go to Page 1</a></p>
+    <p><a href="http://rws.com/MYo/OXq3yeqT4Uq/U6XbUw==">Go to Page 2</a></p>
 </body>
 </html> while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", upstream: "http://127.0.0.1:80/index.html", host: "rws.com"
-2023/04/26 00:40:07 [error] 9357#0: *539 [lua] response_handle.lua:2:  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", upstream: "http://127.0.0.1:80/index.html", host: "rws.com"
-2023/04/26 00:40:07 [error] 9357#0: *539 [lua] request_handle.lua:7: url: http://rws.com/IMAGE.JPG, client: 127.0.0.1, server: rws.com, request: "GET /IMAGE.JPG HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
-2023/04/26 00:40:07 [error] 9357#0: *543 open() "/usr/local/openresty/nginx/html/IMAGE.JPG" failed (2: No such file or directory), client: 127.0.0.1, server: pwb.com, request: "GET /IMAGE.JPG HTTP/1.0", host: "pwb.com", referrer: "http://rws.com/index.html"
-2023/04/26 00:40:07 [error] 9357#0: *539 [lua] response_handle.lua:2: <html>
-<head><title>404 Not Found</title></head>
+2023/04/28 00:46:58 [error] 21310#0: *1326 [lua] body_filter.lua:2: modified_body:<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+</head>
 <body>
-<center><h1>404 Not Found</h1></center>
-<hr><center>openresty/1.21.4.1</center>
+    <h1>Welcome to Home Page</h1>
+    <p><a href="http://rws.com/Dxoh3qB+EK5lnEAlmVA1ow==">Go to Page 1</a></p>
+    <p><a href="http://rws.com/MYo/OXq3yeqT4Uq/U6XbUw==">Go to Page 2</a></p>
 </body>
-</html>
- while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /IMAGE.JPG HTTP/1.1", upstream: "http://127.0.0.1:80/IMAGE.JPG", host: "rws.com", referrer: "http://rws.com/index.html"
-2023/04/26 00:40:07 [error] 9357#0: *539 [lua] response_handle.lua:2:  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /IMAGE.JPG HTTP/1.1", upstream: "http://127.0.0.1:80/IMAGE.JPG", host: "rws.com", referrer: "http://rws.com/index.html"
-2023/04/26 00:40:42 [error] 9357#0: *539 [lua] request_handle.lua:7: url: http://rws.com/page1.html, client: 127.0.0.1, server: rws.com, request: "GET /page1.html HTTP/1.1", host: "rws.com"
-2023/04/26 00:40:42 [error] 9357#0: *539 [lua] response_handle.lua:2: <!DOCTYPE html>
+</html> while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /index.html HTTP/1.1", upstream: "http://127.0.0.1:80/index.html", host: "rws.com"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] request_handle.lua:12: 2.1, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] request_handle.lua:15: 2.2, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] request_handle.lua:48: 2.2 - 2.5, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] request_handle.lua:54: 2.5 - 2.6 - 2.7 - 2.8, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] check_transform_moudle.lua:100: is_url_expire(): info.expire_time: 1714150018, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] check_transform_moudle.lua:105: is_url_expire(): cur_time: 1682614020, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] check_transform_moudle.lua:142: is_access_too_fast(): cur_time:1682614020, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] check_transform_moudle.lua:144: is_access_too_fast(): info.last_access:0, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] request_handle.lua:71: 2.9, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] request_handle.lua:81: 2.9 - 3, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] body_filter.lua:2: modified_body:nil while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", subrequest: "/page1.html", upstream: "http://127.0.0.1:80/page1.html", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] body_filter.lua:2: modified_body:nil while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", subrequest: "/page1.html", upstream: "http://127.0.0.1:80/page1.html", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] response_handle.lua:11: response_handle(): 3 - 4.1 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] response_handle.lua:25: response_handle(): 4.1 - 4.3 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] response_handle.lua:63: response_handle(): 5 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] rewrite_module.lua:20: is_absolute_url(): 5.1 - 5.2 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] rewrite_module.lua:26: process_relative_url(): 5.2 - 5.3 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] rewrite_module.lua:46: process_relative_url(): it is protect link  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] rewrite_module.lua:48: process_relative_url(): it is in whitelist while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] rewrite_module.lua:143: processed_response(): 5.8 - 5.9 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] rewrite_module.lua:20: is_absolute_url(): 5.1 - 5.2 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] rewrite_module.lua:26: process_relative_url(): 5.2 - 5.3 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] rewrite_module.lua:29: process_relative_url(): 5.3 - 5.7 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] rewrite_module.lua:33: process_relative_url(): 5.7 - 5.8 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] rewrite_module.lua:143: processed_response(): 5.8 - 5.9 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1370 open() "/usr/local/openresty/nginx/html/Dxoh3qB+EK5lnEAlmVA1ow==" failed (2: No such file or directory), client: 127.0.0.1, server: pwb.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.0", host: "pwb.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] body_filter.lua:2: modified_body:<!DOCTYPE html>
 <html>
 <head>
     <title>Page 1</title>
 </head>
 <body>
     <h1>Welcome to Page 1</h1>
-    <p><a href="/index.html">Go to Home Page</a></p>
+    <p><a href="http://rws.com/index.html">Go to Home Page</a></p>
     <p><a href="/page2.html">Go to Page 2</a></p>
 </body>
 </html>
- while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /page1.html HTTP/1.1", upstream: "http://127.0.0.1:80/page1.html", host: "rws.com"
-2023/04/26 00:40:42 [error] 9357#0: *539 [lua] response_handle.lua:2:  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /page1.html HTTP/1.1", upstream: "http://127.0.0.1:80/page1.html", host: "rws.com"
-2023/04/26 00:41:17 [error] 9357#0: *539 [lua] request_handle.lua:7: url: http://rws.com/page2.html, client: 127.0.0.1, server: rws.com, request: "GET /page2.html HTTP/1.1", host: "rws.com", referrer: "http://rws.com/"
-2023/04/26 00:41:17 [error] 9357#0: *539 [lua] response_handle.lua:2: <!DOCTYPE html>
+ while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", upstream: "http://127.0.0.1:80/Dxoh3qB+EK5lnEAlmVA1ow==", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:00 [error] 21310#0: *1326 [lua] body_filter.lua:2: modified_body:<!DOCTYPE html>
 <html>
 <head>
-    <title>Page 2</title>
+    <title>Page 1</title>
 </head>
 <body>
-    <h1>Welcome to Page 2</h1>
-    <p><a href="/index.html">Go to Home Page</a></p>
-    <p><a href="/page1.html">Go to Page 1</a></p>
-    <form action="/submit" method="post">
-        <input type="text" name="field" placeholder="Enter some text">
-        <button type="submit">Submit</button>
-    </form>
-</body>
-</html> while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /page2.html HTTP/1.1", upstream: "http://127.0.0.1:80/page2.html", host: "rws.com", referrer: "http://rws.com/"
-2023/04/26 00:41:17 [error] 9357#0: *539 [lua] response_handle.lua:2:  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /page2.html HTTP/1.1", upstream: "http://127.0.0.1:80/page2.html", host: "rws.com", referrer: "http://rws.com/"
-2023/04/26 00:41:25 [error] 9357#0: *539 [lua] request_handle.lua:7: url: http://rws.com/INDEX.HTML, client: 127.0.0.1, server: rws.com, request: "GET /INDEX.HTML HTTP/1.1", host: "rws.com", referrer: "http://rws.com/page2.html"
-2023/04/26 00:41:25 [error] 9357#0: *549 open() "/usr/local/openresty/nginx/html/INDEX.HTML" failed (2: No such file or directory), client: 127.0.0.1, server: pwb.com, request: "GET /INDEX.HTML HTTP/1.0", host: "pwb.com", referrer: "http://rws.com/page2.html"
-2023/04/26 00:41:25 [error] 9357#0: *539 [lua] response_handle.lua:2: <html>
-<head><title>404 Not Found</title></head>
-<body>
-<center><h1>404 Not Found</h1></center>
-<hr><center>openresty/1.21.4.1</center>
+    <h1>Welcome to Page 1</h1>
+    <p><a href="http://rws.com/index.html">Go to Home Page</a></p>
+    <p><a href="/page2.html">Go to Page 2</a></p>
 </body>
 </html>
- while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /INDEX.HTML HTTP/1.1", upstream: "http://127.0.0.1:80/INDEX.HTML", host: "rws.com", referrer: "http://rws.com/page2.html"
-2023/04/26 00:41:25 [error] 9357#0: *539 [lua] response_handle.lua:2:  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /INDEX.HTML HTTP/1.1", upstream: "http://127.0.0.1:80/INDEX.HTML", host: "rws.com", referrer: "http://rws.com/page2.html"
+ while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", upstream: "http://127.0.0.1:80/Dxoh3qB+EK5lnEAlmVA1ow==", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] request_handle.lua:12: 2.1, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] request_handle.lua:15: 2.2, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] request_handle.lua:48: 2.2 - 2.5, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] request_handle.lua:54: 2.5 - 2.6 - 2.7 - 2.8, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] check_transform_moudle.lua:100: is_url_expire(): info.expire_time: 1714150018, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] check_transform_moudle.lua:105: is_url_expire(): cur_time: 1682614024, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] check_transform_moudle.lua:142: is_access_too_fast(): cur_time:1682614024, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] check_transform_moudle.lua:144: is_access_too_fast(): info.last_access:1682614020, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] request_handle.lua:71: 2.9, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] request_handle.lua:81: 2.9 - 3, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] body_filter.lua:2: modified_body:nil while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", subrequest: "/page1.html", upstream: "http://127.0.0.1:80/page1.html", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] body_filter.lua:2: modified_body:nil while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", subrequest: "/page1.html", upstream: "http://127.0.0.1:80/page1.html", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] response_handle.lua:11: response_handle(): 3 - 4.1 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] response_handle.lua:25: response_handle(): 4.1 - 4.3 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] response_handle.lua:63: response_handle(): 5 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] rewrite_module.lua:20: is_absolute_url(): 5.1 - 5.2 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] rewrite_module.lua:26: process_relative_url(): 5.2 - 5.3 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] rewrite_module.lua:46: process_relative_url(): it is protect link  while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] rewrite_module.lua:48: process_relative_url(): it is in whitelist while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] rewrite_module.lua:143: processed_response(): 5.8 - 5.9 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] rewrite_module.lua:20: is_absolute_url(): 5.1 - 5.2 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] rewrite_module.lua:26: process_relative_url(): 5.2 - 5.3 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] rewrite_module.lua:29: process_relative_url(): 5.3 - 5.7 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] rewrite_module.lua:33: process_relative_url(): 5.7 - 5.8 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] rewrite_module.lua:143: processed_response(): 5.8 - 5.9 while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1392 open() "/usr/local/openresty/nginx/html/Dxoh3qB+EK5lnEAlmVA1ow==" failed (2: No such file or directory), client: 127.0.0.1, server: pwb.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.0", host: "pwb.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] body_filter.lua:2: modified_body:<!DOCTYPE html>
+<html>
+<head>
+    <title>Page 1</title>
+</head>
+<body>
+    <h1>Welcome to Page 1</h1>
+    <p><a href="http://rws.com/index.html">Go to Home Page</a></p>
+    <p><a href="/page2.html">Go to Page 2</a></p>
+</body>
+</html>
+ while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", upstream: "http://127.0.0.1:80/Dxoh3qB+EK5lnEAlmVA1ow==", host: "rws.com", referrer: "http://rws.com/index.html"
+2023/04/28 00:47:04 [error] 21310#0: *1326 [lua] body_filter.lua:2: modified_body:<!DOCTYPE html>
+<html>
+<head>
+    <title>Page 1</title>
+</head>
+<body>
+    <h1>Welcome to Page 1</h1>
+    <p><a href="http://rws.com/index.html">Go to Home Page</a></p>
+    <p><a href="/page2.html">Go to Page 2</a></p>
+</body>
+</html>
+ while sending to client, client: 127.0.0.1, server: rws.com, request: "GET /Dxoh3qB+EK5lnEAlmVA1ow== HTTP/1.1", upstream: "http://127.0.0.1:80/Dxoh3qB+EK5lnEAlmVA1ow==", host: "rws.com", referrer: "http://rws.com/index.html"

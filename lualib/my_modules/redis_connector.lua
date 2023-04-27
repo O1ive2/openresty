@@ -15,16 +15,6 @@ local function connect_to_redis()
     return client
 end
 
-local function is_virtual_url_exists(virtual_url)
-    local client = connect_to_redis()
-    if not client then return false end
-    local exists,err = client:hexists("url", virtual_url)
-    client:close()
-
-
-    return exists == 1
-end
-
 local function get_data_in_url_table(virtual_url)
     local client = connect_to_redis()
     if not client then return end
@@ -97,33 +87,7 @@ local function is_url_in_whitelist( url )
     return is_member == 1
 end
 
-local function add_to_whitelist(ip_address)
-    local client = connect_to_redis()
-    if not client then return false end
 
-    local ok, err = client:sadd("whitelist", ip_address)
-    client:close()
-    if not ok then
-        print("Error adding to whitelist: ", err)
-        return false
-    end
-
-    return true
-end
-
-local function remove_from_whitelist(ip_address)
-    local client = connect_to_redis()
-    if not client then return false end
-
-    local ok, err = client:srem("whitelist", ip_address)
-    client:close()
-    if not ok then
-        print("Error removing from whitelist: ", err)
-        return false
-    end
-
-    return true
-end
 
 local function add_user_url(user, urls)
     local client = connect_to_redis()
@@ -239,12 +203,52 @@ local function get_key_by_user(user)
     return key
 end
 
+local function add_cookie_ip(cookie, ip)
+    local client = connect_to_redis()
+    if not client then return false end
+
+    local ok, err = client:hset("cookie_ip", cookie, ip)
+    client:close()
+    if not ok then
+        print("Error adding cookie_ip record: ", err)
+        return false
+    end
+
+    return true
+end
+
+local function get_ip_by_cookie(cookie)
+    local client = connect_to_redis()
+    if not client then return nil end
+
+    local ip, err = client:hget("cookie_ip", cookie)
+    client:close()
+    if err then
+        print("Error getting get_ip_by_cookie: ", err)
+        return nil
+    end
+
+    return ip
+end
+
+local function delete_cookie_ip(cookie)
+    local client = connect_to_redis()
+    if not client then return false end
+
+    local ok, err = client:hdel("cookie_ip", cookie)
+    client:close()
+    if err then
+        print("Error deleting cookie_user record: ", err)
+        return false
+    end
+
+    return true
+end
+
+
 return {
-    is_virtual_url_exists = is_virtual_url_exists,
     update_data = update_data,
     add_url_table_data = add_url_table_data,
-    add_to_whitelist = add_to_whitelist,
-    remove_from_whitelist = remove_from_whitelist,
     add_user_url = add_user_url,
     get_url_by_user = get_url_by_user,
     add_cookie_user = add_cookie_user,
@@ -254,4 +258,7 @@ return {
     get_data_in_url_table = get_data_in_url_table,
     get_key_by_user = get_key_by_user,
     add_user_key = add_user_key,
+    delete_cookie_ip = delete_cookie_ip,
+    get_ip_by_cookie = get_ip_by_cookie,
+    add_cookie_ip = add_cookie_ip,
 }

@@ -5,8 +5,10 @@ local uuid = require "resty.jit-uuid"
 local redis = require "resty.redis"
 uuid.seed()
 
+local _M = {}
 
 local function encrypt_path(key, path)
+    ngx.log(ngx.ERR, 'key: ',key)
     local path_to_encrypt = string.sub(path, 2)
     local aes_256_cbc_sha512x2 = aes:new(key, nil, aes.cipher(128, "cbc"), {iv = "1234567890123456"})
     local encrypted = aes_256_cbc_sha512x2:encrypt(path_to_encrypt)
@@ -15,60 +17,89 @@ local function encrypt_path(key, path)
 end
 
 local function is_absolute_url(url)
+    ngx.log(ngx.ERR, '5.1 - 5.2')
     return url:find("http://") == 1 or url:find("https://") == 1
 end
 
 -- 
 local function process_absolute_url(key, url_string, user)
-    local in_whitelist, err = redis_connector.is_url_in_whitelist(url_string)
-    if in_whitelist then
-        return url_string
-    else
-        local parsed_url = url.parse(url_string)
-        local path = parsed_url.path
-        local encrypted_path = encrypt_path(key, path)
-        
-        parsed_url.path = encrypted_path
-        local result_url = url.build(parsed_url)
-
-        local urls, err1 = redis_connector.get_url_by_user(user)
-        if err1 then
-            ngx.log(ngx.ERR,"Error get_url_by_user:" ,err1)
+    ngx.log(ngx.ERR, '5.2 - 5.3')
+    local urls, err0 = redis_connector.get_url_by_user(user)
+    if urls and urls[url_string] then
+        ngx.log(ngx.ERR, '5.3 - 5.7')
+        local vir_url = urls[url_string]
+        local new_expire_time = ngx.time() + 60 * 60 * 24 * 365
+        local _, err = redis_connector.update_data(vir_url, {expire_time = new_expire_time})
+        ngx.log(ngx.ERR, '5.7 - 5.8')
+        if err then
+            ngx.log(ngx.ERR,"Error update_data:" ,err)
             return
         end
-        -- 5.4
-        urls[url_string] = encrypted_path
+    else
+        local is_protect_link = _M.is_protect_link(url_string)
+        local in_whitelist, err = redis_connector.is_url_in_whitelist(url_string)
+        if err then
+            ngx.log(ngx.ERR,"Error is_url_in_whitelist:" ,err)
+            return
+        end
+        if is_protect_link then
+            ngx.log(ngx.ERR, 'it is protect link ')
+            if in_whitelist then
+                ngx.log(ngx.ERR, 'it is in whitelist')
+                return url_string
+            else
+                ngx.log(ngx.ERR, 'it is not in whitelist')
+                ngx.log(ngx.ERR, '5.3 - 5.4')
+                local parsed_url = url.parse(url_string)
+                local path = parsed_url.path
+                local encrypted_path = encrypt_path(key, path)
+                
+                parsed_url.path = encrypted_path
+                local result_url = url.build(parsed_url)
         
-        local _, err2 = redis_connector.add_user_url(user, urls)
-        if err2 then
-            ngx.log(ngx.ERR,"Error add_user_url:" ,err2)
-            return 
+                local urls, err1 = redis_connector.get_url_by_user(user)
+                if err1 then
+                    ngx.log(ngx.ERR,"Error get_url_by_user:" ,err1)
+                    return
+                end
+                -- 5.4
+                urls[url_string] = result_url
+                ngx.log(ngx.ERR, '5.4 - 5.5')
+                
+                local _, err2 = redis_connector.add_user_url(user, urls)
+                if err2 then
+                    ngx.log(ngx.ERR,"Error add_user_url:" ,err2)
+                    return 
+                end
+        
+                ngx.log(ngx.ERR, '5.5 - 5.6')
+                local info = {
+                    real_url = url_string,
+                    expire_time = ngx.time() + 60 * 60 * 24 * 365,
+                    last_access = 0,
+                    access_count = 0
+                }
+                local _, err3 = redis_connector.add_url_table_data(result_url,info)
+                if err3 then
+                    ngx.log(ngx.ERR,"Error add_url_table_data:" ,err3)
+                    return
+                end
+                ngx.log(ngx.ERR, '5.6 - 5.8')
+                return result_url
+            end
+        else
+            ngx.log(ngx.ERR, 'it not protect link ')
+            return url_string 
         end
-
-        local info = {
-            real_url = url_string,
-            is_first = true,
-            expire_time = os.time() + 100,000,000,
-            access_count = 0,
-            last_access = os.time()
-        }
-        local _, err3 = redis_connector.add_url_table_data(result_url,info)
-        if err3 then
-            ngx.log(ngx.ERR,"Error add_url_table_data:" ,err3)
-        end
-
-        return result_url
     end
-
-    
-
-    
 end
 
 local function process_relative_url(key, base_url, relative_path, user)
     local combined_url = url.absolute(base_url, relative_path)
     return process_absolute_url(key, combined_url, user)
 end
+
+
 
 
 local function process_url(key, base_url, url, user)
@@ -81,7 +112,7 @@ local function process_url(key, base_url, url, user)
     return replaced_url
 end
 
-local function processed_response(base_url, response, user)
+function _M.processed_response(base_url, response, user)
     local patterns = {
         '(href)=["\']([^"\']+)["\']',
         '(src)=["\']([^"\']+)["\']',
@@ -109,87 +140,31 @@ local function processed_response(base_url, response, user)
     local replaced_urls = {}
     for _, url_info in ipairs(url_infos) do
         local replaced_url = process_url(key, base_url, url_info.url, user)
+        ngx.log(ngx.ERR, '5.8 - 5.9')
         replaced_urls[url_info.url] = replaced_url
     end
+
 
     -- 使用处理后的 URL 替换原始 URL
     for original_url, replaced_url in pairs(replaced_urls) do
         response = string.gsub(response, original_url, replaced_url)
     end
 
+
     return response
 end
 
 
-local function is_external_link(url, protected_server_url)
-    return not string.find(url, protected_server_url)
-end
-
-local _M = {}
-
-function _M.process_url_rewrite(base_url,res)
-    local first_access = ngx.var.cookie_is_first_access
-    local cookie = ngx.var.cookie_value
-    -- 4.1
-    if first_access == "true" then
-        -- 4.2
-        local unique_identifier = uuid()
-        local _, err = redis_connector.add_cookie_user(cookie, unique_identifier)
-        local _, err1 = redis_connector.add_user_key(unique_identifier)
-        if err then
-            ngx.log(ngx.ERR, "Error add_cookie_user:"..err)
-            return 
-        end
-
-        if err1 then
-            ngx.log(ngx.ERR, "Error add_user_key:"..err1)
-            return 
-        end
+function _M.is_protect_link(url)
+    local pattern1 = "https?://rws%.com"
+    local pattern2 = "https?://pwb%.com"
+    local start_index1, end_index = string.find(url, pattern1)
+    local start_index2, end_index = string.find(url, pattern2)
+    if start_index1 or start_index2  then
+        return true
     else
-        -- 4.3
-        local client_cookies = ngx.var.http_cookie or ""
-        local cookie_name = "value"
-        local new_value = uuid()
-        local new_cookie = new_value..'; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
-        local update_cookies = string.gsub(client_cookies, cookie_name .. "=(.-);", cookie_name .. "=" .. new_cookie .. ";")
-        ngx.header['Set-Cookie'] = update_cookies
-        local user, err0 = redis_connector.get_user_by_cookie(cookie)
-        if err0 then 
-            ngx.log(ngx.ERR, 'Error get_user_by_cookie:'..err0)
-            return 
-        end
-
-        local _, err = redis_connector.delete_cookie_user(cookie)
-        if err then 
-            ngx.log(ngx.ERR, 'Error delete_cookie_user:'..err)
-            return 
-        end
-
-        local _, err2 = redis_connector.add_cookie_user(new_value, user)
-        local _, err1 = redis_connector.add_user_key(user)
-        if err2 then 
-            ngx.log(ngx.ERR, 'Error add_cookie_user:'..err2)
-            return 
-        end
-
-        if err1 then
-            ngx.log(ngx.ERR, "Error add_user_key:"..err1)
-            return 
-        end
+        return false
     end
-
-    local _cookie = ngx.var.cookie_value
-
-    local user, err = redis_connector.get_user_by_cookie(_cookie)
-
-    if err then
-        ngx.log(ngx.ERR, 'Error get_user_by_cookie:'..err)
-        return 
-    end
-
-    -- 5.1 - 5.9
-    return processed_response(base_url, res, user)
-
 end
 
 return _M
