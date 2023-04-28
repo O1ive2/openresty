@@ -1,3 +1,22 @@
+local allowed_origins = {
+    "http://rws.com",
+    "http://wbp.com",
+    "https://127.0.0.1",
+    "http://192.168.38.128/"
+}
+
+local origin = ngx.req.get_headers()["Origin"]
+
+if origin then
+    for i, allowed_origin in ipairs(allowed_origins) do
+        if allowed_origin == origin then
+            ngx.header["Access-Control-Allow-Origin"] = allowed_origin
+            ngx.header["Access-Control-Allow-Credentials"] = "true"
+            break
+        end
+    end
+end
+
 local process_uri = require('my_modules.check_transform_moudle')
 local redis_connector = require('my_modules.redis_connector')
 local url = require("socket.url")
@@ -18,7 +37,7 @@ if real_url_info and next(real_url_info) == nil then
     ngx.log(ngx.ERR, '2.2 - 2.3')
 
 
-    if process_uri.is_dynamic_request() then
+    if process_uri.is_dynamic_request() then 
         ngx.log(ngx.ERR, '2.3 - 2.4')
 
         if process_uri.is_in_whitelist(request_url) then 

@@ -76,8 +76,11 @@ end
 -- 2.5
 function _M.is_cookie_match(cookie_value)
 
+    ngx.log(ngx.ERR, 'cookie_value:', cookie_value)
 
     local ip = redis_connector.get_ip_by_cookie(cookie_value)
+
+    ngx.log(ngx.ERR, 'ip:', ip)
 
     local cur_ip = ngx.var.remote_addr
 

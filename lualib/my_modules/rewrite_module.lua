@@ -7,6 +7,14 @@ uuid.seed()
 
 local _M = {}
 
+local function table_to_string(table)
+    local result = ""
+    for k, v in pairs(table) do
+        result = result .. tostring(k) .. "=" .. tostring(v) .. ", "
+    end
+    return "{" .. string.sub(result, 1, -3) .. "}"
+end
+
 local function encrypt_path(key, path)
     ngx.log(ngx.ERR, 'key: ',key)
     local path_to_encrypt = string.sub(path, 2)
@@ -105,8 +113,10 @@ end
 local function process_url(key, base_url, url, user)
     local replaced_url
     if is_absolute_url(url) then
+        ngx.log(ngx.ERR, 'it is_absolute_url!')
         replaced_url = process_absolute_url(key, url, user)
     else
+        ngx.log(ngx.ERR, 'it is not absolute_url!')
         replaced_url = process_relative_url(key, base_url, url, user)
     end
     return replaced_url
@@ -132,9 +142,12 @@ function _M.processed_response(base_url, response, user)
     for _, pattern in ipairs(patterns) do
         response = string.gsub(response, pattern, function(attr, url)
             table.insert(url_infos, {attr = attr, url = url})
+            ngx.log(ngx.ERR, "attr:",attr," url:",url)
             return attr .. "=\""  .. url  .. "\""
         end)
     end
+
+
 
     -- 处理 URL
     local replaced_urls = {}
@@ -158,9 +171,11 @@ end
 function _M.is_protect_link(url)
     local pattern1 = "https?://rws%.com"
     local pattern2 = "https?://pwb%.com"
-    local start_index1, end_index = string.find(url, pattern1)
-    local start_index2, end_index = string.find(url, pattern2)
-    if start_index1 or start_index2  then
+    local pattern3 = "https?://192.168.38.128"
+    local start_index1  = string.find(url, pattern1)
+    local start_index2  = string.find(url, pattern2)
+    local start_index3 = string.find(url, pattern3)
+    if start_index1 or start_index2 or start_index3 then
         return true
     else
         return false

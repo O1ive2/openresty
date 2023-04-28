@@ -63,7 +63,7 @@ function  _M.response_handle(response_body, is_first_access)
     ngx.log(ngx.ERR, '5')
     local rewrite_html = rewrite_module.processed_response(base_url,response_body, user)
 
-    -- ngx.arg[1] = rewrite_html
+    ngx.log(ngx.ERR, 'rewrite_html:',rewrite_html)
 
     return rewrite_html
 
