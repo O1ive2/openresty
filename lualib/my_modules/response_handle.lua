@@ -5,6 +5,16 @@ uuid.seed()
 
 local _M = {}
 
+function _M.is_html(content_type)
+    if content_type then
+        local mime = content_type:match("^%s*(.-)%s*;") or content_type
+        if mime:lower() == "text/html" then
+            return true
+        end
+    end
+    return false
+end
+
 function  _M.response_handle(response_body, is_first_access)
     
 

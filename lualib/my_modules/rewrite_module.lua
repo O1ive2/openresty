@@ -21,6 +21,7 @@ local function encrypt_path(key, path)
     local aes_256_cbc_sha512x2 = aes:new(key, nil, aes.cipher(128, "cbc"), {iv = "1234567890123456"})
     local encrypted = aes_256_cbc_sha512x2:encrypt(path_to_encrypt)
     local encoded = ngx.encode_base64(encrypted)
+    encoded = string.gsub(encoded, "/", "_") -- 将 '/' 替换为 '_'
     return '/' .. encoded
 end
 

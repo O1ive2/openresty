@@ -57,7 +57,6 @@ end
 
 -- 2.4
 function _M.is_in_whitelist(request_url)
-    ngx.log(ngx.ERR, "Error is_in_whitelist param request_url: ", request_url)
     local is_whitelisted, err = redis_connector.is_url_in_whitelist(request_url)
 
 
