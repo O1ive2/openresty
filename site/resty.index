@@ -64,3 +64,27 @@ module lua-resty-jit-uuid-0.0.7
   section 4598 5205 license
 
 # END lua-resty-jit-uuid
+# BEGIN lua-ffi-zlib
+
+dist lua-ffi-zlib-0.5.0
+  aliases ffi.zlib
+  modules lua-ffi-zlib-0.5.0
+
+module lua-ffi-zlib-0.5.0
+  aliases ffi.zlib
+  section 18 276 lua-ffi-zlib
+  section 276 1794 methods
+  section 371 1067 inflategzip
+  section 1067 1794 deflategzip
+  section 1794 2832 example
+  section 2832 5171 advanced usage
+  section 3088 3247 createstream
+  section 3247 3404 initinflate
+  section 3404 3608 initdeflate
+  section 3608 4199 deflate
+  section 4199 4790 inflate
+  section 4790 4931 adler
+  section 4931 5066 crc
+  section 5066 5171 zlib_err
+
+# END lua-ffi-zlib

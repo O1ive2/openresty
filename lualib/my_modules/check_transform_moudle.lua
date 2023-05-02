@@ -79,9 +79,10 @@ function _M.is_cookie_match(cookie_value)
 
     local ip = redis_connector.get_ip_by_cookie(cookie_value)
 
-    ngx.log(ngx.ERR, 'ip:', ip)
 
     local cur_ip = ngx.var.remote_addr
+
+    ngx.log(ngx.ERR, 'cur_ip:',cur_ip,'  ip:',ip)
 
     if ip == cur_ip then
         return true
@@ -98,13 +99,7 @@ function _M.is_url_expire(url)
         ngx.log(ngx.ERR, "Get data error: ", err)
         return false
     end
-    if info then
-        ngx.log(ngx.ERR, "info.expire_time: ", info.expire_time)
-    else
-        ngx.log(ngx.ERR, "not info there ")  
-    end
 
-    ngx.log(ngx.ERR, "cur_time: ", cur_time)
     if info and tonumber(info.expire_time) < cur_time then
         ngx.log(ngx.ERR, '2.6 failed')
         ngx.log(ngx.ERR, 'Vitural url is expire')
@@ -125,7 +120,6 @@ function _M.is_max_count(url)
     if info and tonumber(info.access_count) >= 1000 then
         ngx.log(ngx.ERR, 'Access count is max')
         ngx.log(ngx.ERR, '2.7 failed')
-        ngx.exec("/index.html")
         return false
     end
     return true
@@ -137,13 +131,10 @@ function _M.is_access_too_fast(url)
     local cur_time = ngx.time()
     if err then
         ngx.log(ngx.ERR, "Get data error: ", err)
-        ngx.exec("/index.html")
         return false
     end
 
-    ngx.log(ngx.ERR,'cur_time:',cur_time)
 
-    ngx.log(ngx.ERR,'info.last_access:',info.last_access)
     if info and cur_time - tonumber( info.last_access )  < 3 then
         ngx.log(ngx.ERR, 'Access too fast')
         ngx.log(ngx.ERR, '2.8 failed')

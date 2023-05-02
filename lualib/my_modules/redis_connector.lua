@@ -119,16 +119,49 @@ local function get_url_by_user(user)
     return cjson.decode(urls)
 end
 
+local function log_cookie_user() 
+    local client = connect_to_redis()
+    if not client then return false end
+    local res, err = client:hgetall("cookie_user")
+    if not res then
+        ngx.log(ngx.ERR,"Failed to get hash: ", err)
+        return
+    end
+
+    if #res == 0 then
+        ngx.log(ngx.ERR,"The 'cookie_user' hash is empty")
+        return
+    end
+
+    -- Print key-value pairs
+    for i = 1, #res, 2 do
+        local key = res[i]
+        local value = res[i + 1]
+        ngx.log(ngx.ERR,'log_cookie_user:',key, ": ", value)
+    end
+
+    -- Close connection
+    local ok, err = client:close()
+    if not ok then
+        ngx.log(ngx.ERR,"Failed to close: ", err)
+        return
+    end
+end
+
 local function add_cookie_user(cookie, user)
     local client = connect_to_redis()
     if not client then return false end
 
     local ok, err = client:hset("cookie_user", cookie, user)
+    ngx.log(ngx.ERR, 'add_cookie_user:', cookie,':',user)
+    log_cookie_user()
     client:close()
     if not ok then
-        print("Error adding cookie_user record: ", err)
+        ngx.log(ngx.ERR,"Error adding cookie_user record: ", err)
         return false
     end
+
+    
 
     return true
 end
@@ -151,10 +184,12 @@ local function delete_cookie_user(cookie)
     local client = connect_to_redis()
     if not client then return false end
 
+    ngx.log(ngx.ERR,"delete_cookie_user: ", cookie)
     local ok, err = client:hdel("cookie_user", cookie)
+    log_cookie_user()
     client:close()
     if err then
-        print("Error deleting cookie_user record: ", err)
+        ngx.log(ngx.ERR,"Error deleting cookie_user record: ", err)
         return false
     end
 

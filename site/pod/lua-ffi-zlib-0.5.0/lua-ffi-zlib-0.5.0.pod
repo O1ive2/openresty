@@ -1,0 +1,241 @@
+=encoding utf-8
+
+
+=head1 lua-ffi-zlib
+
+
+A L<Lua|http://www.lua.org> module using LuaJIT's L<FFI|http://luajit.org/ext_ffi.html> feature to access zlib.
+Intended primarily for use within L<OpenResty|http://openresty.org> to allow manipulation of gzip encoded HTTP responses.
+
+
+=head1 Methods
+
+
+Basic methods allowing for simple compression or decompression of gzip data
+
+
+=head2 inflateGzip
+
+C<Syntax: ok, err = inflateGzip(input, output, chunk?, windowBits?)>
+
+
+=over
+
+
+=item *
+
+C<input> should be a function that accepts a chunksize as its only argument and return that many bytes of the gzip stream
+
+=item *
+
+C<output> will receive a string of decompressed data as its only argument, do with it as you will!
+
+=item *
+
+C<chunk> is the size of the input and output buffers, optional and defaults to 16KB
+
+=item *
+
+C<windowBits> is passed to C<inflateInit2()>, should be left as default for most cases.
+See L<zlib manual|http://zlib.net/manual.html> for details
+
+
+=back
+
+On error returns C<false> and the error message, otherwise C<true> and the last status message
+
+
+=head2 deflateGzip
+
+C<Syntax: ok, err = deflateGzip(input, output, chunk?, options?)>
+
+=over
+
+
+=item *
+
+C<input> should be a function that accepts a chunksize as its only argument and return that many bytes of uncompressed data.
+
+=item *
+
+C<output> will receive a string of compressed data as its only argument, do with it as you will!
+
+=item *
+
+C<chunk> is the size of the input and output buffers, optional and defaults to 16KB
+
+=item *
+
+C<options> is a table of options to pass to C<deflateInit2()>
+Valid options are level, memLevel, strategy and windowBits, see L<zlib manual|http://zlib.net/manual.html> for details
+
+
+=back
+
+On error returns C<false> and the error message, otherwise C<true> and the last status message
+
+
+=head1 Example
+
+Reads a file and output the decompressed version.
+
+Roughly equivalent to running C<< gzip -dc file.gz > out_file | tee >>
+
+
+    local table_insert = table.insert
+    local table_concat = table.concat
+    local zlib = require('lib.ffi-zlib')
+    
+    local f = io.open(arg[1], "rb")
+    local out_f = io.open(arg[2], "w")
+    
+    local input = function(bufsize)
+        -- Read the next chunk
+        local d = f:read(bufsize)
+        if d == nil then
+            return nil
+        end
+        return d
+    end
+    
+    local output_table = {}
+    local output = function(data)
+        table_insert(output_table, data)
+        local ok, err = out_f:write(data)
+        if not ok then
+            -- abort decompression when error occurs
+            return nil, err
+        end
+    end
+    
+    -- Decompress the data
+    local ok, err = zlib.inflateGzip(input, output)
+    if not ok then
+        print(err)
+        return
+    end
+    
+    local decompressed = table_concat(output_table,'')
+    
+    print(decompressed)
+
+
+=head1 Advanced Usage
+
+
+Several other methods are available for advanced usage.
+Some of these map directly to functions in the zlib library itself, see the L<manual|http://zlib.net/manual.html> for full details.
+Others are lower level utility functions.
+
+
+=head2 createStream
+
+C<Synax: stream, inbuf, outbuf = createStream(bufsize)>
+
+Returns a z_stream struct, input buffer and output buffer of length C<bufsize>
+
+
+=head2 initInflate
+
+C<Syntax: ok = initInflate(stream, windowBits?)>
+
+Calls zlib's inflateInit2 with given stream, defaults to automatic header detection.
+
+
+=head2 initDeflate
+
+C<Syntax: ok = initDeflate(stream, options?)>
+
+Calls zlib's deflateInit2 with the given stream.
+C<options> is an optional table that can set level, memLevel, strategy and windowBits
+
+
+=head2 deflate
+
+C<Syntax: ok, err = deflate(input, output, bufsize, stream, inbuf, outbuf)>
+
+
+=over
+
+
+=item *
+
+C<input> is a function that takes a chunk size argument and returns at most that many input bytes
+
+=item *
+
+C<output> is a function that takes a string argument of output data
+
+=item *
+
+C<bufsize> is the length of the output buffer
+
+=item *
+
+C<inbuf> cdata input buffer
+
+=item *
+
+C<outpuf> ccdata output buffer
+
+
+=back
+
+This function will loop until all input data is consumed (C<input> returns nil) or an error occurs.
+It will then clean up the stream and return an error code
+
+
+=head2 inflate
+
+C<Syntax: ok, err = inflate(input, output, bufsize, stream, inbuf, outbuf)>
+
+
+=over
+
+
+=item *
+
+C<input> is a function that takes a chunk size argument and returns at most that many input bytes
+
+=item *
+
+C<output> is a function that takes a string argument of output data
+
+=item *
+
+C<bufsize> is the length of the output buffer
+
+=item *
+
+C<inbuf> cdata input buffer
+
+=item *
+
+C<outpuf> ccdata output buffer
+
+
+=back
+
+This function will loop until all input data is consumed (C<input> returns nil) or an error occurs.
+It will then clean up the stream and return an error code
+
+
+=head2 adler
+
+C<Syntax: chksum = adler(str, chksum?)>
+
+Computes an adler32 checksum for a string, updates an existing checksum if provided
+
+
+=head2 crc
+
+C<Syntax: chksum = crc(str, chksum?)>
+
+Computes an crc32 checksum for a string, updates an existing checksum if provided
+
+
+=head2 zlib_err
+
+C<Syntax: err = zlib_err(code)>
+
+Returns the string representation of a zlib error code

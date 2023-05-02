@@ -3,6 +3,7 @@ local aes = require "resty.aes"
 local redis_connector = require "redis_connector"
 local uuid = require "resty.jit-uuid"
 local redis = require "resty.redis"
+
 uuid.seed()
 
 local _M = {}
@@ -15,13 +16,16 @@ local function table_to_string(table)
     return "{" .. string.sub(result, 1, -3) .. "}"
 end
 
+
 local function encrypt_path(key, path)
-    ngx.log(ngx.ERR, 'key: ',key)
+    ngx.log(ngx.ERR, 'path:', path)
     local path_to_encrypt = string.sub(path, 2)
     local aes_256_cbc_sha512x2 = aes:new(key, nil, aes.cipher(128, "cbc"), {iv = "1234567890123456"})
     local encrypted = aes_256_cbc_sha512x2:encrypt(path_to_encrypt)
     local encoded = ngx.encode_base64(encrypted)
     encoded = string.gsub(encoded, "/", "_") -- 将 '/' 替换为 '_'
+    encoded = string.gsub(encoded, "=", "*")
+    encoded = string.gsub(encoded, "+", "^")
     return '/' .. encoded
 end
 
@@ -39,11 +43,14 @@ local function process_absolute_url(key, url_string, user)
         local vir_url = urls[url_string]
         local new_expire_time = ngx.time() + 60 * 60 * 24 * 365
         local _, err = redis_connector.update_data(vir_url, {expire_time = new_expire_time})
+        
         ngx.log(ngx.ERR, '5.7 - 5.8')
+        
         if err then
             ngx.log(ngx.ERR,"Error update_data:" ,err)
             return
         end
+        return vir_url
     else
         local is_protect_link = _M.is_protect_link(url_string)
         local in_whitelist, err = redis_connector.is_url_in_whitelist(url_string)
@@ -55,13 +62,18 @@ local function process_absolute_url(key, url_string, user)
             ngx.log(ngx.ERR, 'it is protect link ')
             if in_whitelist then
                 ngx.log(ngx.ERR, 'it is in whitelist')
+                ngx.log(ngx.ERR, 'protect_Inwhitelist_url_string:',url_string)
                 return url_string
             else
                 ngx.log(ngx.ERR, 'it is not in whitelist')
                 ngx.log(ngx.ERR, '5.3 - 5.4')
+                ngx.log(ngx.ERR, 'protect_notInwhitelist_url_string:',url_string)
                 local parsed_url = url.parse(url_string)
                 local path = parsed_url.path
-                local encrypted_path = encrypt_path(key, path)
+                local encrypted_path = path
+                if path then
+                    encrypted_path = encrypt_path(key, path)
+                end
                 
                 parsed_url.path = encrypted_path
                 local result_url = url.build(parsed_url)
@@ -98,6 +110,7 @@ local function process_absolute_url(key, url_string, user)
             end
         else
             ngx.log(ngx.ERR, 'it not protect link ')
+            ngx.log(ngx.ERR, 'not_protect_url_string:',url_string)
             return url_string 
         end
     end
@@ -130,7 +143,8 @@ function _M.processed_response(base_url, response, user)
         '(action)=["\']([^"\']+)["\']'
     }
 
-    local key, err = redis_connector.get_key_by_user(user)    
+    local key, err = redis_connector.get_key_by_user(user)  
+    ngx.log(ngx.ERR, 'key:'..key)
     if err then
         ngx.log(ngx.ERR, 'Error get_key_by_user:'..err)
         return
@@ -143,12 +157,9 @@ function _M.processed_response(base_url, response, user)
     for _, pattern in ipairs(patterns) do
         response = string.gsub(response, pattern, function(attr, url)
             table.insert(url_infos, {attr = attr, url = url})
-            ngx.log(ngx.ERR, "attr:",attr," url:",url)
             return attr .. "=\""  .. url  .. "\""
         end)
     end
-
-
 
     -- 处理 URL
     local replaced_urls = {}
@@ -169,18 +180,31 @@ function _M.processed_response(base_url, response, user)
 end
 
 
-function _M.is_protect_link(url)
-    local pattern1 = "https?://rws%.com"
-    local pattern2 = "https?://pwb%.com"
-    local pattern3 = "https?://192.168.38.128"
-    local start_index1  = string.find(url, pattern1)
-    local start_index2  = string.find(url, pattern2)
-    local start_index3 = string.find(url, pattern3)
-    if start_index1 or start_index2 or start_index3 then
+function _M.is_protect_link(url_string)
+    local parsed_url = url.parse(url_string)
+    local scheme = parsed_url.scheme and (parsed_url.scheme .. "://") or ""
+    local host = parsed_url.host or ""
+
+    local scheme_and_host = scheme .. host
+
+    local is_in_whitelist = redis_connector.is_url_in_whitelist(scheme_and_host)
+    -- local pattern1 = "https?://rws%.com"
+    -- local pattern2 = "https?://pwb%.com"
+    -- local pattern3 = "https?://192.168.38.128"
+    -- local start_index1  = string.find(url, pattern1)
+    -- local start_index2  = string.find(url, pattern2)
+    -- local start_index3 = string.find(url, pattern3)
+    -- if start_index1 or start_index2 or start_index3 then
+    --     return true
+    -- else
+    --     return false
+    -- end
+    if is_in_whitelist then
         return true
     else
-        return false
+        return false    
     end
+    
 end
 
 return _M

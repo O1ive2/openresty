@@ -1,28 +1,13 @@
--- local allowed_origins = {
---     "http://rws.com",
---     "http://wbp.com",
---     "https://127.0.0.1",
---     "http://192.168.38.128/"
--- }
-
--- local origin = ngx.req.get_headers()["Origin"]
-
--- if origin then
---     for i, allowed_origin in ipairs(allowed_origins) do
---         if allowed_origin == origin then
---             ngx.header["Access-Control-Allow-Origin"] = allowed_origin
---             ngx.header["Access-Control-Allow-Credentials"] = "true"
---             break
---         end
---     end
--- end
-
 local process_uri = require('my_modules.check_transform_moudle')
 local redis_connector = require('my_modules.redis_connector')
 local url = require("socket.url")
 local uuid = require "resty.jit-uuid"
 local response_handle = require("my_modules.response_handle")
+
 uuid.seed()
+
+local user_dict = ngx.shared.user_dict
+local user = user_dict:get('user')
 
 local scheme = ngx.var.scheme
 local host = ngx.var.host
@@ -43,24 +28,37 @@ if real_url_info and next(real_url_info) == nil then
         if process_uri.is_in_whitelist(request_url) then 
             ngx.log(ngx.ERR, '2.4 - 3')
             ngx.log(ngx.ERR, '1.real_url:',uri )
-            -- ngx.ctx.new_uri = uri
-            -- ngx.var.is_first_access = true
 
-            -- local new_uri= ngx.ctx.new_uri
-            -- ngx.req.set_uri(new_uri)
-            -- ngx.ctx.content_type = content_type
-            local res = ngx.location.capture(uri)
+            local res = ngx.location.capture("/rewrite"..uri)
+            
             
             if res.status == ngx.HTTP_OK then
+                local is_gzip = false
                 for k, v in pairs(res.header) do
-                    ngx.log(ngx.ERR, 'ngx header:', k ,':', v)
                     ngx.ctx[k] = v
+                    if k == 'Content-Encoding' and v == 'gzip' then
+                        is_gzip = true
+                    end
                 end
-                ngx.log(ngx.ERR, 'pure body:',res.body)
+
+                local response_body = res.body
+
+                if is_gzip then
+                    ngx.log(ngx.ERR,'it is gzip decompress')
+                    response_body = response_handle.decompress_gzip(response_body)
+                end
+                
+                -- ngx.log(ngx.ERR, 'pure body:', response_body)
                 local content_type = res.header["Content-Type"]
-                ngx.log(ngx.ERR, 'content_type:',content_type)
                 ngx.ctx.content_type = content_type
-                local modified_body = response_handle.response_handle(res.body, true)
+                
+                
+                local modified_body = response_handle.response_handle(response_body, true, user)
+                if is_gzip then
+                    ngx.log(ngx.ERR,'it is gzip compress')
+                    modified_body = response_handle.compress_gzip(modified_body)
+                end
+                
                 -- 将修改后的响应数据存储在 ngx.ctx 中
                 ngx.ctx.modified_body = modified_body
 
@@ -86,17 +84,17 @@ else
 
         if not process_uri.is_url_expire(request_url)then 
             ngx.log(ngx.ERR, 'gg1:')
-            ngx.exec("/index.html")
+            ngx.exec("/main.htm")
         end
 
         if not process_uri.is_max_count(request_url)then 
             ngx.log(ngx.ERR, 'gg2:')
-            ngx.exec("/index.html")
+            ngx.exec("/main.htm")
         end
 
         if not process_uri.is_access_too_fast(request_url)then 
             ngx.log(ngx.ERR, 'gg3:')
-            ngx.exec("/index.html")
+            ngx.exec("/main.htm")
         end
 
         ngx.log(ngx.ERR, '2.9')
@@ -111,26 +109,38 @@ else
 
         ngx.log(ngx.ERR, '2.9 - 3')
         ngx.log(ngx.ERR, '2.real_url:',real_uri )
-        -- ngx.ctx.new_uri = real_uri
-        -- ngx.var.is_first_access = false
 
-        -- local new_uri= ngx.ctx.new_uri
-        -- ngx.req.set_uri(new_uri)
-        local res = ngx.location.capture(real_uri)
+        local res = ngx.location.capture("/rewrite"..real_uri)
+        
 
         if res.status == ngx.HTTP_OK then
+            -- ngx.log(ngx.ERR, 'pure body:', res.body)
+            local is_gzip = false
             for k, v in pairs(res.header) do
-                ngx.log(ngx.ERR, 'ngx header:', k ,':', v)
                 ngx.ctx[k] = v
+                if k == 'Content-Encoding' and v == 'gzip' then
+                    is_gzip = true
+                end
+            end
+
+            local response_body = res.body
+            if is_gzip then
+                ngx.log(ngx.ERR,'it is gzip decompress')
+                response_body = response_handle.decompress_gzip(response_body)
             end
             local content_type = res.header["Content-Type"]
-            ngx.log(ngx.ERR, 'content_type:',content_type)
-            ngx.log(ngx.ERR, 'pure body:',res.body)
 
-                ngx.ctx.content_type = content_type
-                local modified_body = response_handle.response_handle(res.body, false)
-                -- 将修改后的响应数据存储在 ngx.ctx 中
-                ngx.ctx.modified_body = modified_body
+            ngx.ctx.content_type = content_type
+ 
+            
+            local modified_body = response_handle.response_handle(response_body, false, user)
+
+            if is_gzip then
+                ngx.log(ngx.ERR,'it is gzip compress')
+                modified_body = response_handle.compress_gzip(modified_body)
+            end
+            -- 将修改后的响应数据存储在 ngx.ctx 中
+            ngx.ctx.modified_body = modified_body
 
         else
             --处理错误
