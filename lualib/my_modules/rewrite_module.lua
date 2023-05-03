@@ -25,7 +25,7 @@ local function encrypt_path(key, path)
     local encoded = ngx.encode_base64(encrypted)
     encoded = string.gsub(encoded, "/", "_") -- 将 '/' 替换为 '_'
     encoded = string.gsub(encoded, "=", "*")
-    encoded = string.gsub(encoded, "+", "^")
+    -- encoded = string.gsub(encoded, "+", "^")
     return '/' .. encoded
 end
 
@@ -117,11 +117,16 @@ local function process_absolute_url(key, url_string, user)
 end
 
 local function process_relative_url(key, base_url, relative_path, user)
+
+    local real_url_info  = redis_connector.get_data_in_url_table(base_url)
+
+    if real_url_info and next(real_url_info) ~= nil then
+        base_url = real_url_info['real_url']
+    end
+
     local combined_url = url.absolute(base_url, relative_path)
     return process_absolute_url(key, combined_url, user)
 end
-
-
 
 
 local function process_url(key, base_url, url, user)
@@ -144,7 +149,6 @@ function _M.processed_response(base_url, response, user)
     }
 
     local key, err = redis_connector.get_key_by_user(user)  
-    ngx.log(ngx.ERR, 'key:'..key)
     if err then
         ngx.log(ngx.ERR, 'Error get_key_by_user:'..err)
         return
@@ -179,6 +183,61 @@ function _M.processed_response(base_url, response, user)
     return response
 end
 
+function _M.processed_css(base_url, response, user)
+    local patterns = {
+        '@import%s+"([^"]*)"%s*',
+        "@import%s+'([^']*)'%s*"
+    }
+
+    local patterns_1 = {
+        'url%("([^"]*)"%)',
+        "url%('([^']*)'%)",
+        'url%(([^"\'%s]+)%)'
+    }
+    
+    local key, err = redis_connector.get_key_by_user(user)  
+    if err then
+        ngx.log(ngx.ERR, 'Error get_key_by_user:'..err)
+        return
+    end
+
+    -- 存储原始 URL 信息
+    local url_infos = {}
+
+    -- 提取 URL 信息
+    for _, pattern in ipairs(patterns) do
+        response = string.gsub(response, pattern, function(url)
+            table.insert(url_infos, {url = url})
+            return '@import url("' .. url .. '")'
+        end)
+    end
+
+    for _, pattern in ipairs(patterns_1) do
+        response = string.gsub(response, pattern, function(url)
+            table.insert(url_infos, {url = url})
+            return 'url("' .. url .. '")'
+        end)
+    end
+
+    -- 处理 URL
+    local replaced_urls = {}
+    for _, url_info in ipairs(url_infos) do
+        local replaced_url = process_url(key, base_url, url_info.url, user)
+        replaced_urls[url_info.url] = replaced_url
+    end
+
+
+    -- 使用处理后的 URL 替换原始 URL
+    for original_url, replaced_url in pairs(replaced_urls) do
+        ngx.log(ngx.ERR, 'original_url:',original_url, ' replaced_url:',replaced_url)
+
+        response = string.gsub(response, original_url, replaced_url)
+    end
+
+
+    return response
+end
+
 
 function _M.is_protect_link(url_string)
     local parsed_url = url.parse(url_string)
@@ -188,17 +247,6 @@ function _M.is_protect_link(url_string)
     local scheme_and_host = scheme .. host
 
     local is_in_whitelist = redis_connector.is_url_in_whitelist(scheme_and_host)
-    -- local pattern1 = "https?://rws%.com"
-    -- local pattern2 = "https?://pwb%.com"
-    -- local pattern3 = "https?://192.168.38.128"
-    -- local start_index1  = string.find(url, pattern1)
-    -- local start_index2  = string.find(url, pattern2)
-    -- local start_index3 = string.find(url, pattern3)
-    -- if start_index1 or start_index2 or start_index3 then
-    --     return true
-    -- else
-    --     return false
-    -- end
     if is_in_whitelist then
         return true
     else

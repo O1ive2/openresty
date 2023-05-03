@@ -32,41 +32,34 @@ if real_url_info and next(real_url_info) == nil then
             local res = ngx.location.capture("/rewrite"..uri)
             
             
-            if res.status == ngx.HTTP_OK then
-                local is_gzip = false
-                for k, v in pairs(res.header) do
-                    ngx.ctx[k] = v
-                    if k == 'Content-Encoding' and v == 'gzip' then
-                        is_gzip = true
-                    end
+            local is_gzip = false
+            for k, v in pairs(res.header) do
+                ngx.ctx[k] = v
+                if k == 'Content-Encoding' and v == 'gzip' then
+                    is_gzip = true
                 end
-
-                local response_body = res.body
-
-                if is_gzip then
-                    ngx.log(ngx.ERR,'it is gzip decompress')
-                    response_body = response_handle.decompress_gzip(response_body)
-                end
-                
-                -- ngx.log(ngx.ERR, 'pure body:', response_body)
-                local content_type = res.header["Content-Type"]
-                ngx.ctx.content_type = content_type
-                
-                
-                local modified_body = response_handle.response_handle(response_body, true, user)
-                if is_gzip then
-                    ngx.log(ngx.ERR,'it is gzip compress')
-                    modified_body = response_handle.compress_gzip(modified_body)
-                end
-                
-                -- 将修改后的响应数据存储在 ngx.ctx 中
-                ngx.ctx.modified_body = modified_body
-
-            else
-                -- 处理错误
-                ngx.log(ngx.ERR, 'Error capture :',res.status)
-                return 
             end
+            ngx.ctx.modified_headers = res.header
+            local response_body = res.body
+
+            if is_gzip then
+                ngx.log(ngx.ERR,'it is gzip decompress')
+                response_body = response_handle.decompress_gzip(response_body)
+            end
+                
+            local content_type = res.header["Content-Type"]
+            ngx.ctx.content_type = content_type
+
+            local modified_body = response_handle.response_handle(response_body, true, user, content_type)
+
+            if is_gzip then
+                ngx.log(ngx.ERR,'it is gzip compress')
+                modified_body = response_handle.compress_gzip(modified_body)
+            end
+            
+            -- 将修改后的响应数据存储在 ngx.ctx 中
+            ngx.ctx.modified_body = modified_body
+
         else
             process_uri.block_request_and_log("Whitelisted URL not found:",request_url)
         end
@@ -79,7 +72,7 @@ else
     ngx.log(ngx.ERR, '2.2 - 2.5')
     local cookie_value = ngx.var.cookie_value
 
-    if process_uri.is_cookie_match(cookie_value) then
+    if process_uri.is_ip_user_match(user) then
         ngx.log(ngx.ERR, '2.5 - 2.6 - 2.7 - 2.8')
 
         if not process_uri.is_url_expire(request_url)then 
@@ -113,7 +106,7 @@ else
         local res = ngx.location.capture("/rewrite"..real_uri)
         
 
-        if res.status == ngx.HTTP_OK then
+        -- if res.status == ngx.HTTP_OK then
             -- ngx.log(ngx.ERR, 'pure body:', res.body)
             local is_gzip = false
             for k, v in pairs(res.header) do
@@ -133,21 +126,23 @@ else
             ngx.ctx.content_type = content_type
  
             
-            local modified_body = response_handle.response_handle(response_body, false, user)
+            local modified_body = response_handle.response_handle(response_body, false, user, content_type)
 
             if is_gzip then
                 ngx.log(ngx.ERR,'it is gzip compress')
                 modified_body = response_handle.compress_gzip(modified_body)
             end
             -- 将修改后的响应数据存储在 ngx.ctx 中
+            ngx.ctx.modified_headers = res.header
             ngx.ctx.modified_body = modified_body
 
-        else
-            --处理错误
-            ngx.log(ngx.ERR, 'Error capture :',res.status)
-            return 
-        end
+        -- else
+        --     --处理错误
+        --     ngx.log(ngx.ERR, 'Error capture :',res.status)
+        --     return 
+        -- end
     else
         process_uri.block_request_and_log("Cookie url not match.")
     end
+
 end

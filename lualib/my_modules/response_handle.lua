@@ -112,7 +112,7 @@ function _M.is_html(content_type)
     return false
 end
 
-function  _M.response_handle(response_body, is_first_access, user)
+function  _M.response_handle(response_body, is_first_access, user, content_type)
     ngx.log(ngx.ERR, 'cur user:',user )
     ngx.log(ngx.ERR, '3 - 4.1')
     if is_first_access == true then
@@ -149,12 +149,12 @@ function  _M.response_handle(response_body, is_first_access, user)
             return 
         end
 
-        local _, err1 = redis_connector.delete_cookie_ip(old_cookie_value)
+        -- local _, err1 = redis_connector.delete_cookie_ip(old_cookie_value)
 
-        if err then
-            ngx.log(ngx.ERR,"Error delete_cookie_ip:" ,err1)
-            return 
-        end
+        -- if err then
+        --     ngx.log(ngx.ERR,"Error delete_cookie_ip:" ,err1)
+        --     return 
+        -- end
     end
 
     
@@ -172,22 +172,44 @@ function  _M.response_handle(response_body, is_first_access, user)
         ngx.log(ngx.ERR,"Error add_cookie_user:" ,err)
         return 
     end
-    local _, err1 = redis_connector.add_cookie_ip(new_cookie_value, ip_addr)
+    -- local _, err1 = redis_connector.add_cookie_ip(new_cookie_value, ip_addr)
+
+    -- if err1 then
+    --     ngx.log(ngx.ERR,"Error add_cookie_ip:" ,err1)
+    --     return 
+    -- end
+
+    local _, err1 = redis_connector.add_user_ip(user, ip_addr)
 
     if err1 then
-        ngx.log(ngx.ERR,"Error add_cookie_ip:" ,err1)
+        ngx.log(ngx.ERR,"Error add_user_ip:" ,err1)
         return 
     end
 
     local base_url = ngx.var.scheme .. '://' .. ngx.var.host .. ngx.var.uri
 
     ngx.log(ngx.ERR, '5')
-    local rewrite_html = rewrite_module.processed_response(base_url,response_body, user)
+
+    local rewrite_html
+
+    if content_type == 'text/css' then
+        rewrite_html = rewrite_module.processed_css(base_url,response_body, user)
+    else
+        rewrite_html = rewrite_module.processed_response(base_url,response_body, user)
+    end
+    
+
 
     ngx.log(ngx.ERR, 'rewrite_html:',rewrite_html)
 
     return rewrite_html
 
 end
+
+function _M.process_css(response_body)
+    
+end
+
+
 
 return _M

@@ -76,9 +76,29 @@ end
 function _M.is_cookie_match(cookie_value)
 
     ngx.log(ngx.ERR, 'cookie_value:', cookie_value)
+    
 
     local ip = redis_connector.get_ip_by_cookie(cookie_value)
 
+
+
+    local cur_ip = ngx.var.remote_addr
+
+    ngx.log(ngx.ERR, 'cur_ip:',cur_ip,'  ip:',ip)
+
+    if ip == cur_ip then
+        return true
+    else
+        return false
+    end
+end
+
+function _M.is_ip_user_match(user)
+
+    ngx.log(ngx.ERR, 'user:', user)
+    
+
+    local ip = redis_connector.get_ip_by_user(user)
 
     local cur_ip = ngx.var.remote_addr
 
@@ -143,5 +163,6 @@ function _M.is_access_too_fast(url)
 
     return true
 end
+
 
 return _M

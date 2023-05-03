@@ -7,7 +7,8 @@ local script = [[
         "cookie_user",
         "url",
         "user_key",
-        "user_url"
+        "user_url",
+        "user_ip"
     }
 
     local key_name = "test"

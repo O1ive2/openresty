@@ -154,7 +154,6 @@ local function add_cookie_user(cookie, user)
 
     local ok, err = client:hset("cookie_user", cookie, user)
     ngx.log(ngx.ERR, 'add_cookie_user:', cookie,':',user)
-    log_cookie_user()
     client:close()
     if not ok then
         ngx.log(ngx.ERR,"Error adding cookie_user record: ", err)
@@ -186,7 +185,6 @@ local function delete_cookie_user(cookie)
 
     ngx.log(ngx.ERR,"delete_cookie_user: ", cookie)
     local ok, err = client:hdel("cookie_user", cookie)
-    log_cookie_user()
     client:close()
     if err then
         ngx.log(ngx.ERR,"Error deleting cookie_user record: ", err)
@@ -237,6 +235,38 @@ local function get_key_by_user(user)
 
     return key
 end
+
+local function add_user_ip(user, ip)
+    local client = connect_to_redis()
+    if not client then return false end
+
+    local ok, err = client:hset("user_ip", user, ip)
+    client:close()
+    if not ok then
+        print("Error adding user_ip record: ", err)
+        return false
+    end
+
+    return true
+    
+end
+
+local function get_ip_by_user(user)
+    local client = connect_to_redis()
+    if not client then return nil end
+
+    local ip, err = client:hget("user_ip", user)
+    client:close()
+    if err then
+        print("Error getting get_ip_by_user: ", err)
+        return nil
+    end
+
+    return ip
+end
+
+
+
 
 local function add_cookie_ip(cookie, ip)
     local client = connect_to_redis()
@@ -296,4 +326,6 @@ return {
     delete_cookie_ip = delete_cookie_ip,
     get_ip_by_cookie = get_ip_by_cookie,
     add_cookie_ip = add_cookie_ip,
+    add_user_ip = add_user_ip,
+    get_ip_by_user = get_ip_by_user,
 }
