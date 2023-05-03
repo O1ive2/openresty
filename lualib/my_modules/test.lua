@@ -1,37 +1,52 @@
 local css_content = [=[
-/* Other CSS rules */
-@import url("styles/global.css");
-/* More CSS rules */
-@import url('http://rws.com/styles/theme.css');
-@import url("global.css");
-@import url("cms.min.css");
-@import url("cms-ie6.min.css");
-@import "system_editor.css";
-@import 'another_style.css';
-@import "system_editor.css";
-.headerbg{height: 120px;background: url(Header_Bg.png) no-repeat center center;}
-    #nav .home {float:left;width: 118px;line-height:35px;display:block;text-align:center; color:#fff;background:#062723 url(slide-panel_03.png) 0 0 repeat-x;}
+    .news_icon{background:url(images/list-1.gif);height:16px; background-position: 0px 2px;background-repeat: no-repeat;width:10px;display:block;float:left;}
+        .news_icon_td{background:url(images/list-1.gif);height:16px;background-position: 0px 2px;background-repeat: no-repeat;width:10px;}
+        .div_more a{float:right;width:46px;height:14px;display:block;background:url(images/more.gif);}
+        .scrollnews_li{background:url(images/dot.jpg);background-position: 0px 24px;background-repeat:repeat-x;}
+        .scrollnews3_ul li{background:url(images/dot.jpg);background-position: 0px 24px;background-repeat:repeat-x;padding-left:10px;float:left;}
+        @import url("cms-ie6.min.css");
+
+
 ]=]
 
+local function escape(s)
+    return s:gsub("([^%w])", "%%%1")
+end
+
 local patterns = {
-    '@import%s+url%("([^"]*)"%)',
-        "@import%s+url%('([^']*)'%)",
-        '@import%s+"([^"]*)"%s*',
-        "@import%s+'([^']*)'%s*",
-        'url%(([^"\'%s]+)%)'
+    '@import%s+"([^"]*)"%s*',
+    "@import%s+'([^']*)'%s*"
 }
 
+local patterns_1 = {
+    'url%("([^"]*)"%)',
+    "url%('([^']*)'%)",
+    'url%(([^"\'%s]+)%)'
+}
 local url_infos = {}
-
--- 提取 URL 信息
 for _, pattern in ipairs(patterns) do
     css_content = string.gsub(css_content, pattern, function(url)
         table.insert(url_infos, {url = url})
-        return '@import url("' .. url .. '");'
+        return '@import url("' .. url .. '")'
     end)
 end
 
--- 打印提取到的 URL 信息
-for _, url_info in ipairs(url_infos) do
-    print("Imported URL:", url_info.url)
+-- 提取 URL 信息
+for _, pattern in ipairs(patterns_1) do
+    css_content = string.gsub(css_content, pattern, function(url)
+        table.insert(url_infos, {url = url})
+        return 'url("' .. url .. '");'
+    end)
 end
+
+local replaced_urls = {}
+for _, url_info in ipairs(url_infos) do
+    local replaced_url = url_info.url..'qqqqqqqqqqqqqqqqqqqqqq'
+    replaced_urls[url_info.url] = replaced_url
+end
+
+for original_url, replaced_url in pairs(replaced_urls) do
+    css_content = string.gsub(css_content, escape(original_url), replaced_url)
+end
+
+print(css_content)

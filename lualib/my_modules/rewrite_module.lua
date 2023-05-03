@@ -8,6 +8,10 @@ uuid.seed()
 
 local _M = {}
 
+local function escape(s)
+    return s:gsub("([^%w])", "%%%1")
+end
+
 local function table_to_string(table)
     local result = ""
     for k, v in pairs(table) do
@@ -176,7 +180,7 @@ function _M.processed_response(base_url, response, user)
 
     -- 使用处理后的 URL 替换原始 URL
     for original_url, replaced_url in pairs(replaced_urls) do
-        response = string.gsub(response, original_url, replaced_url)
+        response = string.gsub(response, escape(original_url), replaced_url)
     end
 
 
@@ -231,9 +235,20 @@ function _M.processed_css(base_url, response, user)
     for original_url, replaced_url in pairs(replaced_urls) do
         ngx.log(ngx.ERR, 'original_url:',original_url, ' replaced_url:',replaced_url)
 
-        response = string.gsub(response, original_url, replaced_url)
+        response = string.gsub(response, escape(original_url), replaced_url)
     end
-
+    -- for original_url, replaced_url in pairs(replaced_urls) do
+    --     -- 检查 URL 是否为 "system_editor.css"
+    --     if original_url == "system_editor.css" then
+    --         -- 将 @import 重复 10 次
+    --         local repeat_import = '@import url("' .. replaced_url .. '");'
+    --         local repeated_imports = string.rep(repeat_import, 10)
+    
+    --         response = string.gsub(response, original_url, repeated_imports)
+    --     else
+    --         response = string.gsub(response, original_url, replaced_url)
+    --     end
+    -- end
 
     return response
 end

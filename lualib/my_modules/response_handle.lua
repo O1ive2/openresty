@@ -206,10 +206,5 @@ function  _M.response_handle(response_body, is_first_access, user, content_type)
 
 end
 
-function _M.process_css(response_body)
-    
-end
-
-
 
 return _M

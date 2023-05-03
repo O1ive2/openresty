@@ -131,10 +131,13 @@ else
             if is_gzip then
                 ngx.log(ngx.ERR,'it is gzip compress')
                 modified_body = response_handle.compress_gzip(modified_body)
+            else
+                ngx.ctx.content_length = string.len(modified_body)
             end
             -- 将修改后的响应数据存储在 ngx.ctx 中
             ngx.ctx.modified_headers = res.header
             ngx.ctx.modified_body = modified_body
+            
 
         -- else
         --     --处理错误
