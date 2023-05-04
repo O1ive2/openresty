@@ -40,18 +40,57 @@ if type and type == 'form' then
     query_string = string.sub(uri_params, question_mark_pos)
 end
 
-ngx.log(ngx.ERR,'2.1 - 2.2')
-if value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user then
-    ngx.log(ngx.ERR,'2.2 - 2.5')
+if redis_connector.is_url_in_whitelist(request_url) then
+    if process_uri.is_dynamic_request() then 
+        if process_uri.is_in_whitelist(request_url) then 
+            local res = ngx.location.capture("/rewrite"..uri)
+            
+            local is_gzip = false
+            for k, v in pairs(res.header) do
+                ngx.ctx[k] = v
+                if k == 'Content-Encoding' and v == 'gzip' then
+                    is_gzip = true
+                end
+            end
+            ngx.ctx.modified_headers = res.header
+            local response_body = res.body
+
+            if is_gzip then
+                ngx.log(ngx.ERR,'it is gzip decompress')
+                response_body = response_handle.decompress_gzip(response_body)
+            end
+                
+            local content_type = res.header["Content-Type"]
+            ngx.ctx.content_type = content_type
+
+
+            local modified_body = response_handle.response_handle(response_body, true, user, content_type, request_url)
+
+            if is_gzip then
+                ngx.log(ngx.ERR,'it is gzip compress')
+                modified_body = response_handle.compress_gzip(modified_body)
+            end
+            -- 将修改后的响应数据存储在 ngx.ctx 中
+            ngx.ctx.modified_body = modified_body
+        else
+            process_uri.block_request_and_log("Whitelisted URL not found")
+        end
+
+    else
+        process_uri.block_request_and_log("Request is a dynamic request.")
+    end
+
+elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user then
     local key, err = redis_connector.get_key_by_user(user)
+    ngx.log(ngx.ERR, 'encrypted:',encrypted)
     local real_uri = encrypted and rewrite_module.decrypt_path(key, encrypted)
     local decrypted_path_hash = real_uri and ngx.md5(real_uri)
 
     if decrypted_path_hash ~= original_hash then
+        ngx.log(ngx.ERR,'decrypted_path_hash:',decrypted_path_hash, 'original_hash:',original_hash)
         process_uri.block_request_and_log("Request blocked: decrypted_path_hash and original_hash not match!")
     end
 
-    ngx.log(ngx.ERR,'2.5 - 2.6 - 2.7 - 2.8 - 2.9 - 3')
 
     parsed_url.path = real_uri
     request_url = url.build(parsed_url)
@@ -94,46 +133,6 @@ if value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user the
     -- 将修改后的响应数据存储在 ngx.ctx 中
     ngx.ctx.modified_headers = res.header
     ngx.ctx.modified_body = modified_body
-
 else
-    ngx.log(ngx.ERR,'2.2 - 2.3')
-    if process_uri.is_dynamic_request() then 
-        ngx.log(ngx.ERR,'2.3 - 2.4')
-        if process_uri.is_in_whitelist(request_url) then 
-            ngx.log(ngx.ERR,'2.4 - 3')
-            local res = ngx.location.capture("/rewrite"..uri)
-            
-            local is_gzip = false
-            for k, v in pairs(res.header) do
-                ngx.ctx[k] = v
-                if k == 'Content-Encoding' and v == 'gzip' then
-                    is_gzip = true
-                end
-            end
-            ngx.ctx.modified_headers = res.header
-            local response_body = res.body
-
-            if is_gzip then
-                ngx.log(ngx.ERR,'it is gzip decompress')
-                response_body = response_handle.decompress_gzip(response_body)
-            end
-                
-            local content_type = res.header["Content-Type"]
-            ngx.ctx.content_type = content_type
-
-            local modified_body = response_handle.response_handle(response_body, true, user, content_type, request_url)
-
-            if is_gzip then
-                ngx.log(ngx.ERR,'it is gzip compress')
-                modified_body = response_handle.compress_gzip(modified_body)
-            end
-            -- 将修改后的响应数据存储在 ngx.ctx 中
-            ngx.ctx.modified_body = modified_body
-        else
-            process_uri.block_request_and_log("Whitelisted URL not found")
-        end
-
-    else
-        process_uri.block_request_and_log("Request is a dynamic request.")
-    end
+    process_uri.block_request_and_log("request_url not in whitelist and user not match the cookie")
 end

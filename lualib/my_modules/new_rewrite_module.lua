@@ -1,8 +1,7 @@
 local url = require("socket.url")
-local aes = require "resty.aes"
 local redis_connector = require "redis_connector"
+local aes = require "resty.aes"
 local uuid = require "resty.jit-uuid"
-local redis = require "resty.redis"
 
 uuid.seed()
 
@@ -22,31 +21,43 @@ end
 
 local function encrypt_path(key, path)
     local path_to_encrypt = string.sub(path, 2)
-    local aes_256_cbc_sha512x2 = aes:new(key, nil, aes.cipher(128, "cbc"), {iv = "1234567890123456"})
+    local aes_256_cbc_sha512x2, err = aes:new(key, nil, aes.cipher('128', "cbc"), {iv = "1234567890123456"})
     local encrypted = aes_256_cbc_sha512x2:encrypt(path_to_encrypt)
     local encoded = ngx.encode_base64(encrypted)
     local hash = ngx.md5(path)
+    ngx.log(ngx.ERR, 'before replace en:',encoded)
     encoded = string.gsub(encoded, "/", "~")
     encoded = string.gsub(encoded, "=", "-")
     encoded = string.gsub(encoded, "+", "^")
-    ngx.log(ngx.ERR,'4.3.4')
+    ngx.log(ngx.ERR, 'after replace en:',encoded)
 
     return '/' .. encoded .. '_' .. hash
 end
 
 function _M.decrypt_path(key, encrypted_path)
-    encrypted_path = string.sub(encrypted_path, 2)
-    encrypted_path = string.gsub(encrypted_path, "~", "/")
-    encrypted_path = string.gsub(encrypted_path, "-", "=")
-    encrypted_path = string.gsub(encrypted_path, "^", "+")
+    local path_to_decrypt = string.sub(encrypted_path, 2)
+    ngx.log(ngx.ERR, 'before replace de:',path_to_decrypt)
+    path_to_decrypt = string.gsub(path_to_decrypt, "~", "/")
+    path_to_decrypt = string.gsub(path_to_decrypt, "-", "=")
+    path_to_decrypt = string.gsub(path_to_decrypt, "%^", "+")
+    ngx.log(ngx.ERR, 'after replace de:',path_to_decrypt)
 
-    local decoded = ngx.decode_base64(encrypted_path)
+    local decoded = ngx.decode_base64(path_to_decrypt)
+
+    ngx.log(ngx.ERR,'decoded:',decoded)
     if decoded == nil then
         return false
     end
 
-    local aes_256_cbc_sha512x2 = aes:new(key, nil, aes.cipher(128, "cbc"), {iv = "1234567890123456"})
+    local aes_256_cbc_sha512x2,err = aes:new(key, nil, aes.cipher("128", "cbc"), {iv = "1234567890123456"})
+
+    if not aes_256_cbc_sha512x2 then
+        ngx.log(ngx.ERR,'aes err:',err)
+    end
+
     local decrypted = aes_256_cbc_sha512x2:decrypt(decoded)
+
+    ngx.log(ngx.ERR,'decrypted:',decrypted)
 
     if decrypted == nil then
         return false
@@ -61,6 +72,7 @@ local function is_absolute_url(url)
     return url:find("http://") == 1 or url:find("https://") == 1
 end
 
+
 local function process_absolute_url(key, url_string, type)
     local is_protect_link = _M.is_protect_link(url_string)
     local in_whitelist, err = redis_connector.is_url_in_whitelist(url_string)
@@ -68,13 +80,12 @@ local function process_absolute_url(key, url_string, type)
         ngx.log(ngx.ERR,"Error is_url_in_whitelist:" ,err)
         return
     end
-    ngx.log(ngx.ERR,'4.3.3')
     
     if is_protect_link then
         ngx.log(ngx.ERR, 'it is protect link ')
         if in_whitelist then
             ngx.log(ngx.ERR, 'it is in whitelist')
-            return url_string
+            -- return url_string
         else
             ngx.log(ngx.ERR, 'it is not in whitelist')
             local parsed_url = url.parse(url_string)
@@ -84,7 +95,6 @@ local function process_absolute_url(key, url_string, type)
                 encrypted_path = encrypt_path(key, path)
             end
 
-            ngx.log(ngx.ERR,'4.3.5')
             if type and type == 'action' then
                 parsed_url.path = encrypted_path .. '_form'
             else
@@ -108,7 +118,6 @@ end
 
 local function process_url(key, base_url, url,type)
     local replaced_url
-    ngx.log(ngx.ERR,'4.3.2')
     if is_absolute_url(url) then
         replaced_url = process_absolute_url(key, url, type)
     else
@@ -119,6 +128,7 @@ end
 
 
 function _M.processed_css(base_url, response, key)
+    response = string.gsub(response, 'cbs.hdu.edu.cn', 'rws.com')
     local patterns = {
         '@import%s+"([^"]*)"%s*',
         "@import%s+'([^']*)'%s*"
@@ -165,18 +175,6 @@ function _M.processed_css(base_url, response, key)
     for original_url, replaced_url in pairs(replaced_urls) do
         response = string.gsub(response, escape(original_url), replaced_url)
     end
-    -- for original_url, replaced_url in pairs(replaced_urls) do
-    --     -- 检查 URL 是否为 "system_editor.css"
-    --     if original_url == "system_editor.css" then
-    --         -- 将 @import 重复 10 次
-    --         local repeat_import = '@import url("' .. replaced_url .. '");'
-    --         local repeated_imports = string.rep(repeat_import, 10)
-    
-    --         response = string.gsub(response, original_url, repeated_imports)
-    --     else
-    --         response = string.gsub(response, original_url, replaced_url)
-    --     end
-    -- end
 
     return response
 end
@@ -205,7 +203,6 @@ function _M.processed_response(base_url, response, key)
         '(action)=["\']([^"\']+)["\']'
     }
 
-    ngx.log(ngx.ERR,'4.3.1')
     -- 存储原始 URL 信息
     local url_infos = {}
 
@@ -221,17 +218,18 @@ function _M.processed_response(base_url, response, key)
     local replaced_urls = {}
     for _, url_info in ipairs(url_infos) do
         local replaced_url = process_url(key, base_url, url_info.url, url_info.attr)
-        ngx.log(ngx.ERR, '5.8 - 5.9')
         replaced_urls[url_info.url] = replaced_url
     end
 
 
     -- 使用处理后的 URL 替换原始 URL
     for original_url, replaced_url in pairs(replaced_urls) do
+        ngx.log(ngx.ERR, 'original_url:', original_url, ' replaced_url:', replaced_url)
         response = string.gsub(response, escape(original_url), replaced_url)
     end
 
 
+    response = string.gsub(response, 'cbs.hdu.edu.cn', 'rws.com')
     return response
 end
 

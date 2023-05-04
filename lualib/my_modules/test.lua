@@ -53,7 +53,6 @@
 -- print(css_content)
 
 
-local url_string = 'http://rws.com/test/home/index.html'
-local parsed_url = url.parse(url_string)
-                local path = parsed_url.path
-                local encrypted_path = path
+local url_string = 'http://cbs.edu.cn/main.htm'
+local url = string.gsub(url_string, 'cbs.edu.cn', 'rws.com')
+print(url)

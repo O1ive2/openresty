@@ -115,10 +115,8 @@ end
 
 
 function  _M.response_handle(response_body, is_first_access, user, content_type, base_url)
-    ngx.log(ngx.ERR, '3 - 4.1')
 
     if is_first_access == true then
-        ngx.log(ngx.ERR, '4.1 - 4.2')
         user = uuid()
         local user_dict = ngx.shared.user_dict
         user_dict:set('user', user)
@@ -144,16 +142,14 @@ function  _M.response_handle(response_body, is_first_access, user, content_type,
 
     local rewrite_html
 
-    ngx.log(ngx.ERR,'4.3')
 
     if content_type == 'text/css' then
         rewrite_html = rewrite_module.processed_css(base_url,response_body, key)
     else
-        rewrite_html = rewrite_module.processed_response(base_url,response_body, user ,key)
+        rewrite_html = rewrite_module.processed_response(base_url,response_body,key)
     end
     
     ngx.log(ngx.ERR, 'rewrite_html:',rewrite_html)
-    ngx.log(ngx.ERR,'5')
 
     return rewrite_html
 
