@@ -20,15 +20,15 @@ local function table_to_string(table)
     return "{" .. string.sub(result, 1, -3) .. "}"
 end
 
-
 local function encrypt_path(key, path)
     local path_to_encrypt = string.sub(path, 2)
     local aes_256_cbc_sha512x2 = aes:new(key, nil, aes.cipher(128, "cbc"), {iv = "1234567890123456"})
     local encrypted = aes_256_cbc_sha512x2:encrypt(path_to_encrypt)
     local encoded = ngx.encode_base64(encrypted)
-    encoded = string.gsub(encoded, "/", "_") -- 将 '/' 替换为 '_'
-    encoded = string.gsub(encoded, "=", "*")
-    -- encoded = string.gsub(encoded, "+", "^")
+    encoded = string.gsub(encoded, "/", "~")
+    encoded = string.gsub(encoded, "=", "-")
+    encoded = string.gsub(encoded, "+", "^")
+
     return '/' .. encoded
 end
 
@@ -127,6 +127,8 @@ local function process_relative_url(key, base_url, relative_path, user)
     local combined_url = url.absolute(base_url, relative_path)
     return process_absolute_url(key, combined_url, user)
 end
+
+
 
 
 local function process_url(key, base_url, url, user)
@@ -260,6 +262,150 @@ function _M.is_protect_link(url_string)
         return false    
     end
     
+end
+
+local function new_encrypt_path(key, path)
+    local path_to_encrypt = string.sub(path, 2)
+    local aes_256_cbc_sha512x2 = aes:new(key, nil, aes.cipher(128, "cbc"), {iv = "1234567890123456"})
+    local encrypted = aes_256_cbc_sha512x2:encrypt(path_to_encrypt)
+    local encoded = ngx.encode_base64(encrypted)
+    local hash = ngx.md5(path)
+    encoded = string.gsub(encoded, "/", "~")
+    encoded = string.gsub(encoded, "=", "-")
+    encoded = string.gsub(encoded, "+", "^")
+
+    return '/' .. encoded .. '_' .. hash
+end
+
+function _M.decrypt_path(key, encrypted_path)
+    -- encrypted_path = string.sub(encrypted_path, 2)
+    -- local path_parts = {}
+    -- for part in string.gmatch(encrypted_path, "([^_]+)") do
+    --     table.insert(path_parts, part)
+    -- end
+
+    -- if #path_parts ~= 2 then
+    --     return false
+    -- end
+
+    -- local encrypted = path_parts[1]
+    -- local original_hash = path_parts[2]
+
+    encrypted_path = string.gsub(encrypted_path, "~", "/")
+    encrypted_path = string.gsub(encrypted_path, "-", "=")
+    encrypted_path = string.gsub(encrypted_path, "^", "+")
+
+    local decoded = ngx.decode_base64(encrypted_path)
+    if decoded == nil then
+        return false
+    end
+
+    local aes_256_cbc_sha512x2 = aes:new(key, nil, aes.cipher(128, "cbc"), {iv = "1234567890123456"})
+    local decrypted = aes_256_cbc_sha512x2:decrypt(decoded)
+
+    if decrypted == nil then
+        return false
+    end
+
+    local decrypted_path = "/" .. decrypted
+
+    return decrypted_path
+end
+
+
+local function new_process_absolute_url(key, url_string, user, type)
+    local is_protect_link = _M.is_protect_link(url_string)
+    local in_whitelist, err = redis_connector.is_url_in_whitelist(url_string)
+    if err then
+        ngx.log(ngx.ERR,"Error is_url_in_whitelist:" ,err)
+        return
+    end
+    if is_protect_link then
+        ngx.log(ngx.ERR, 'it is protect link ')
+        if in_whitelist then
+            ngx.log(ngx.ERR, 'it is in whitelist')
+            return url_string
+        else
+            ngx.log(ngx.ERR, 'it is not in whitelist')
+            local parsed_url = url.parse(url_string)
+            local path = parsed_url.path
+            local encrypted_path = path
+            if path then
+                encrypted_path = new_encrypt_path(key, path)
+            end
+            
+            parsed_url.path = encrypted_path
+            local result_url = url.build(parsed_url)
+    
+            local urls, err1 = redis_connector.get_url_by_user(user)
+        end
+    end
+end
+
+local function new_process_relative_url(key, base_url, relative_path, user, type)
+    -- base_url = string.sub(base_url, 2)
+    -- local path_parts = {}
+    -- for part in string.gmatch(base_url, "([^_]+)") do
+    --     table.insert(path_parts, part)
+    -- end
+
+    -- if #path_parts ~= 2 then
+    --     return false
+    -- end
+
+    -- local encrypted = path_parts[1]
+    -- local original_hash = path_parts[2]
+
+
+
+    local combined_url = url.absolute(base_url, relative_path)
+    return new_process_absolute_url(key, combined_url, user ,type)
+end
+
+local function new_process_url(key, base_url, url, user ,type)
+    local replaced_url
+    if is_absolute_url(url) then
+        replaced_url = new_process_absolute_url(key, url, user, type)
+    else
+        replaced_url = new_process_relative_url(key, base_url, url, user, type)
+    end
+    return replaced_url
+end
+
+function _M.new_processed_response(base_url, response, user, key)
+    local patterns = {
+        '(href)=["\']([^"\']+)["\']',
+        '(src)=["\']([^"\']+)["\']',
+        '(action)=["\']([^"\']+)["\']'
+    }
+
+    -- 存储原始 URL 信息
+    local url_infos = {}
+
+    -- 提取 URL 信息
+    for _, pattern in ipairs(patterns) do
+        response = string.gsub(response, pattern, function(attr, url)
+            table.insert(url_infos, {attr = attr, url = url})
+            return attr .. "=\""  .. url  .. "\""
+        end)
+    end
+
+    -- 处理 URL
+    local replaced_urls = {}
+    for _, url_info in ipairs(url_infos) do
+        local replaced_url = new_process_url(key, base_url, url_info.url, user, url_info.attr)
+        ngx.log(ngx.ERR, '5.8 - 5.9')
+        replaced_urls[url_info.url] = replaced_url
+    end
+
+
+    -- 使用处理后的 URL 替换原始 URL
+    for original_url, replaced_url in pairs(replaced_urls) do
+        response = string.gsub(response, escape(original_url), replaced_url)
+    end
+
+
+    return response
 end
 
 return _M

@@ -2,6 +2,7 @@ local rewrite_module = require('my_modules.rewrite_module')
 local redis_connector = require('my_modules.redis_connector')
 local uuid = require "resty.jit-uuid"
 local ffi_zlib = require('resty.ffi-zlib')
+local url = require("socket.url")
 uuid.seed()
 
 local _M = {}
@@ -196,6 +197,67 @@ function  _M.response_handle(response_body, is_first_access, user, content_type)
         rewrite_html = rewrite_module.processed_css(base_url,response_body, user)
     else
         rewrite_html = rewrite_module.processed_response(base_url,response_body, user)
+    end
+    
+
+
+    ngx.log(ngx.ERR, 'rewrite_html:',rewrite_html)
+
+    return rewrite_html
+
+end
+
+function  _M.new_response_handle(response_body, is_first_access, user, content_type)
+    ngx.log(ngx.ERR, '3 - 4.1')
+
+    local key, err = redis_connector.get_key_by_user(user)
+    if is_first_access == true then
+        ngx.log(ngx.ERR, '4.1 - 4.2')
+        user = uuid()
+
+        local user_dict = ngx.shared.user_dict
+
+        user_dict:set('user', user)
+
+        local _, err = redis_connector.add_user_key(user)
+        if err then
+            ngx.log(ngx.ERR,"Error add_user_key:" ,err)
+            return 
+        end
+    end
+
+    local new_cookie_value = uuid()
+    
+    local value_cookie = "value="..new_cookie_value .. '; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
+        
+    ngx.header['Set-Cookie'] = value_cookie
+
+
+    local _ ,err = redis_connector.add_cookie_user(new_cookie_value, user)
+    if err then
+        ngx.log(ngx.ERR,"Error add_cookie_user:" ,err)
+        return 
+    end
+
+    local base_url = ngx.var.scheme .. '://' .. ngx.var.host .. ngx.var.uri
+    local parsed_url = url.parse(base_url)
+    local path = parsed_url.path
+    local decrypted_path  = path
+    
+    if path then
+        decrypted_path = rewrite_module.decrypt_path(key, decrypted_path)
+    end
+    parsed_url.path = decrypted_path
+    base_url = url.build(parsed_url)
+
+    ngx.log(ngx.ERR, '5')
+
+    local rewrite_html
+
+    if content_type == 'text/css' then
+        rewrite_html = rewrite_module.processed_css(base_url,response_body, user ,key)
+    else
+        rewrite_html = rewrite_module.new_processed_response(base_url,response_body, user ,key)
     end
     
 
