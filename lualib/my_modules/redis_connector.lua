@@ -153,7 +153,6 @@ local function add_cookie_user(cookie, user)
     if not client then return false end
 
     local ok, err = client:hset("cookie_user", cookie, user)
-    ngx.log(ngx.ERR, 'add_cookie_user:', cookie,':',user)
     client:close()
     if not ok then
         ngx.log(ngx.ERR,"Error adding cookie_user record: ", err)
@@ -182,8 +181,6 @@ end
 local function delete_cookie_user(cookie)
     local client = connect_to_redis()
     if not client then return false end
-
-    ngx.log(ngx.ERR,"delete_cookie_user: ", cookie)
     local ok, err = client:hdel("cookie_user", cookie)
     client:close()
     if err then

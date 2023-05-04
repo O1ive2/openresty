@@ -22,7 +22,6 @@ end
 
 
 local function encrypt_path(key, path)
-    ngx.log(ngx.ERR, 'path:', path)
     local path_to_encrypt = string.sub(path, 2)
     local aes_256_cbc_sha512x2 = aes:new(key, nil, aes.cipher(128, "cbc"), {iv = "1234567890123456"})
     local encrypted = aes_256_cbc_sha512x2:encrypt(path_to_encrypt)
@@ -66,12 +65,10 @@ local function process_absolute_url(key, url_string, user)
             ngx.log(ngx.ERR, 'it is protect link ')
             if in_whitelist then
                 ngx.log(ngx.ERR, 'it is in whitelist')
-                ngx.log(ngx.ERR, 'protect_Inwhitelist_url_string:',url_string)
                 return url_string
             else
                 ngx.log(ngx.ERR, 'it is not in whitelist')
                 ngx.log(ngx.ERR, '5.3 - 5.4')
-                ngx.log(ngx.ERR, 'protect_notInwhitelist_url_string:',url_string)
                 local parsed_url = url.parse(url_string)
                 local path = parsed_url.path
                 local encrypted_path = path
@@ -114,7 +111,6 @@ local function process_absolute_url(key, url_string, user)
             end
         else
             ngx.log(ngx.ERR, 'it not protect link ')
-            ngx.log(ngx.ERR, 'not_protect_url_string:',url_string)
             return url_string 
         end
     end
@@ -136,10 +132,8 @@ end
 local function process_url(key, base_url, url, user)
     local replaced_url
     if is_absolute_url(url) then
-        ngx.log(ngx.ERR, 'it is_absolute_url!')
         replaced_url = process_absolute_url(key, url, user)
     else
-        ngx.log(ngx.ERR, 'it is not absolute_url!')
         replaced_url = process_relative_url(key, base_url, url, user)
     end
     return replaced_url
@@ -233,8 +227,6 @@ function _M.processed_css(base_url, response, user)
 
     -- 使用处理后的 URL 替换原始 URL
     for original_url, replaced_url in pairs(replaced_urls) do
-        ngx.log(ngx.ERR, 'original_url:',original_url, ' replaced_url:',replaced_url)
-
         response = string.gsub(response, escape(original_url), replaced_url)
     end
     -- for original_url, replaced_url in pairs(replaced_urls) do
