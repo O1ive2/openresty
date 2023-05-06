@@ -8,7 +8,8 @@ local script = [[
         "url",
         "user_key",
         "user_url",
-        "user_ip"
+        "user_ip",
+        "user_info"
     }
 
     local key_name = "test"

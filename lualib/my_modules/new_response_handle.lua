@@ -115,7 +115,7 @@ end
 
 
 function  _M.response_handle(response_body, is_first_access, user, content_type, base_url)
-
+    local user_info
     if is_first_access == true then
         user = uuid()
         local user_dict = ngx.shared.user_dict
@@ -127,6 +127,11 @@ function  _M.response_handle(response_body, is_first_access, user, content_type,
             return 
         end
 
+        user_info = {
+            access_count = 1,
+            expire_time = ngx.time()  + 60 * 60 * 6
+        }
+
         local new_cookie_value = uuid()
         local value_cookie = "value="..new_cookie_value .. '; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
         ngx.header['Set-Cookie'] = value_cookie
@@ -136,7 +141,16 @@ function  _M.response_handle(response_body, is_first_access, user, content_type,
             ngx.log(ngx.ERR,"Error add_cookie_user:" ,err)
             return 
         end
+    else
+        user_info = redis_connector.get_info_by_user(user)
+        user_info.access_count =user_info.access_count + 1
     end
+
+    local _, addERR = redis_connector.add_user_info(user, user_info)
+        if addERR then
+            ngx.log(ngx.ERR,"Error add_user_info:" ,addERR)
+            return
+        end
 
     local key, err = redis_connector.get_key_by_user(user)
 

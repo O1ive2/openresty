@@ -25,26 +25,20 @@ local function encrypt_path(key, path)
     local encrypted = aes_256_cbc_sha512x2:encrypt(path_to_encrypt)
     local encoded = ngx.encode_base64(encrypted)
     local hash = ngx.md5(path)
-    ngx.log(ngx.ERR, 'before replace en:',encoded)
     encoded = string.gsub(encoded, "/", "~")
     encoded = string.gsub(encoded, "=", "-")
     encoded = string.gsub(encoded, "+", "^")
-    ngx.log(ngx.ERR, 'after replace en:',encoded)
 
     return '/' .. encoded .. '_' .. hash
 end
 
 function _M.decrypt_path(key, encrypted_path)
     local path_to_decrypt = string.sub(encrypted_path, 2)
-    ngx.log(ngx.ERR, 'before replace de:',path_to_decrypt)
     path_to_decrypt = string.gsub(path_to_decrypt, "~", "/")
     path_to_decrypt = string.gsub(path_to_decrypt, "-", "=")
     path_to_decrypt = string.gsub(path_to_decrypt, "%^", "+")
-    ngx.log(ngx.ERR, 'after replace de:',path_to_decrypt)
-
     local decoded = ngx.decode_base64(path_to_decrypt)
 
-    ngx.log(ngx.ERR,'decoded:',decoded)
     if decoded == nil then
         return false
     end
@@ -224,7 +218,7 @@ function _M.processed_response(base_url, response, key)
 
     -- 使用处理后的 URL 替换原始 URL
     for original_url, replaced_url in pairs(replaced_urls) do
-        ngx.log(ngx.ERR, 'original_url:', original_url, ' replaced_url:', replaced_url)
+        -- ngx.log(ngx.ERR, 'original_url:', original_url, ' replaced_url:', replaced_url)
         response = string.gsub(response, escape(original_url), replaced_url)
     end
 

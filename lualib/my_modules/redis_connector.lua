@@ -307,6 +307,40 @@ local function delete_cookie_ip(cookie)
     return true
 end
 
+local function add_user_info(user, info)
+    local client = connect_to_redis()
+    if not client then return false end
+
+    local add_data_json = cjson.encode(info)
+    ngx.log(ngx.ERR, 'user:', user, ' add_data_json:',add_data_json)
+    local ok, err = client:hset("user_info", user, add_data_json)
+    client:close()
+    if not ok then
+        ngx.log(ngx.ERR,"Error add_user_info: ", err)
+        return false
+    end
+
+    return true
+end
+
+local function get_info_by_user(user)
+    local client = connect_to_redis()
+    if not client then return end
+
+    local data, err = client:hget("user_info", user)
+    client:close()
+    if err then
+        ngx.log(ngx.ERR,"Error get_user_info: ", err)    
+        return
+    end
+
+    if data == cjson.null or not data then
+        return {}
+    end
+
+    return cjson.decode(data)
+end
+
 
 return {
     update_data = update_data,
@@ -325,4 +359,6 @@ return {
     add_cookie_ip = add_cookie_ip,
     add_user_ip = add_user_ip,
     get_ip_by_user = get_ip_by_user,
+    add_user_info = add_user_info,
+    get_info_by_user = get_info_by_user
 }

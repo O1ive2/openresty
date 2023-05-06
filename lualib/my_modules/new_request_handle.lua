@@ -81,6 +81,21 @@ if redis_connector.is_url_in_whitelist(request_url) then
     end
 
 elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user then
+    local user_info, getErr = redis_connector.get_info_by_user(user)
+    if getErr then
+        ngx.log(ngx.ERR, 'getErr:',getErr)
+    end
+
+    if user_info and user_info.access_count > 10000 then
+        ngx.log(ngx.ERR, 'user access_count is max!')
+        ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
+    if user_info and ngx.time() > user_info.expire_time then
+        ngx.log(ngx.ERR, 'user is expire!')
+        ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
     local key, err = redis_connector.get_key_by_user(user)
     ngx.log(ngx.ERR, 'encrypted:',encrypted)
     local real_uri = encrypted and rewrite_module.decrypt_path(key, encrypted)
