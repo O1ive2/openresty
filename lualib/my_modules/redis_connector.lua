@@ -312,7 +312,7 @@ local function add_user_info(user, info)
     if not client then return false end
 
     local add_data_json = cjson.encode(info)
-    ngx.log(ngx.ERR, 'user:', user, ' add_data_json:',add_data_json)
+    -- ngx.log(ngx.ERR, 'user:', user, ' add_data_json:',add_data_json)
     local ok, err = client:hset("user_info", user, add_data_json)
     client:close()
     if not ok then

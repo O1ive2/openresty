@@ -51,7 +51,7 @@ function _M.decrypt_path(key, encrypted_path)
 
     local decrypted = aes_256_cbc_sha512x2:decrypt(decoded)
 
-    ngx.log(ngx.ERR,'decrypted:',decrypted)
+    -- ngx.log(ngx.ERR,'decrypted:',decrypted)
 
     if decrypted == nil then
         return false
@@ -76,12 +76,12 @@ local function process_absolute_url(key, url_string, type)
     end
     
     if is_protect_link then
-        ngx.log(ngx.ERR, 'it is protect link ')
+        -- ngx.log(ngx.ERR, 'it is protect link ')
         if in_whitelist then
-            ngx.log(ngx.ERR, 'it is in whitelist')
+            -- ngx.log(ngx.ERR, 'it is in whitelist')
             -- return url_string
         else
-            ngx.log(ngx.ERR, 'it is not in whitelist')
+            -- ngx.log(ngx.ERR, 'it is not in whitelist')
             local parsed_url = url.parse(url_string)
             local path = parsed_url.path
             local encrypted_path = path
@@ -99,7 +99,7 @@ local function process_absolute_url(key, url_string, type)
             return result_url
         end
     else
-        ngx.log(ngx.ERR, 'it is not protect url')
+        -- ngx.log(ngx.ERR, 'it is not protect url')
         return url_string
     end
 end
@@ -133,11 +133,6 @@ function _M.processed_css(base_url, response, key)
         "url%('([^']*)'%)",
         'url%(([^"\'%s]+)%)'
     }
-    
-    if err then
-        ngx.log(ngx.ERR, 'Error get_key_by_user:'..err)
-        return
-    end
 
     -- 存储原始 URL 信息
     local url_infos = {}

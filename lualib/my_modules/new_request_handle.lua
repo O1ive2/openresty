@@ -5,7 +5,7 @@ local uuid = require "resty.jit-uuid"
 local response_handle = require("my_modules.new_response_handle")
 local rewrite_module = require("my_modules.new_rewrite_module")
 
-ngx.log(ngx.ERR,'1 - 2.1')
+-- ngx.log(ngx.ERR,'1 - 2.1')
 uuid.seed()
 
 local user_dict = ngx.shared.user_dict
@@ -56,7 +56,7 @@ if redis_connector.is_url_in_whitelist(request_url) then
             local response_body = res.body
 
             if is_gzip then
-                ngx.log(ngx.ERR,'it is gzip decompress')
+                -- ngx.log(ngx.ERR,'it is gzip decompress')
                 response_body = response_handle.decompress_gzip(response_body)
             end
                 
@@ -67,7 +67,7 @@ if redis_connector.is_url_in_whitelist(request_url) then
             local modified_body = response_handle.response_handle(response_body, true, user, content_type, request_url)
 
             if is_gzip then
-                ngx.log(ngx.ERR,'it is gzip compress')
+                -- ngx.log(ngx.ERR,'it is gzip compress')
                 modified_body = response_handle.compress_gzip(modified_body)
             end
             -- 将修改后的响应数据存储在 ngx.ctx 中
@@ -97,7 +97,7 @@ elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user
     end
 
     local key, err = redis_connector.get_key_by_user(user)
-    ngx.log(ngx.ERR, 'encrypted:',encrypted)
+    -- ngx.log(ngx.ERR, 'encrypted:',encrypted)
     local real_uri = encrypted and rewrite_module.decrypt_path(key, encrypted)
     local decrypted_path_hash = real_uri and ngx.md5(real_uri)
 
@@ -130,7 +130,7 @@ elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user
 
     local response_body = res.body
     if is_gzip then
-        ngx.log(ngx.ERR,'it is gzip decompress')
+        -- ngx.log(ngx.ERR,'it is gzip decompress')
         response_body = response_handle.decompress_gzip(response_body)
     end
     local content_type = res.header["Content-Type"]
@@ -140,7 +140,7 @@ elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user
     local modified_body = response_handle.response_handle(response_body, false, user, content_type, base_url)
 
     if is_gzip then
-        ngx.log(ngx.ERR,'it is gzip compress')
+        -- ngx.log(ngx.ERR,'it is gzip compress')
         modified_body = response_handle.compress_gzip(modified_body)
     else
         ngx.ctx.content_length = string.len(modified_body)
