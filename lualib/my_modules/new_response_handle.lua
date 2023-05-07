@@ -163,7 +163,7 @@ function  _M.response_handle(response_body, is_first_access, user, content_type,
         rewrite_html = rewrite_module.processed_response(base_url,response_body,key)
     end
     
-    ngx.log(ngx.ERR, 'rewrite_html:',rewrite_html)
+    -- ngx.log(ngx.ERR, 'rewrite_html:',rewrite_html)
 
     return rewrite_html
 

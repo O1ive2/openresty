@@ -5,6 +5,14 @@ local uuid = require "resty.jit-uuid"
 local response_handle = require("my_modules.new_response_handle")
 local rewrite_module = require("my_modules.new_rewrite_module")
 
+local method = ngx.req.get_method()
+-- 获取请求 URI 和查询参数
+local uri = ngx.var.request_uri
+local args = ngx.req.get_uri_args()
+-- 获取请求头
+local headers = ngx.req.get_headers()
+ngx.req.read_body()
+
 -- ngx.log(ngx.ERR,'1 - 2.1')
 uuid.seed()
 
@@ -99,11 +107,16 @@ elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user
     local key, err = redis_connector.get_key_by_user(user)
     -- ngx.log(ngx.ERR, 'encrypted:',encrypted)
     local real_uri = encrypted and rewrite_module.decrypt_path(key, encrypted)
+    
     local decrypted_path_hash = real_uri and ngx.md5(real_uri)
 
     if decrypted_path_hash ~= original_hash then
         ngx.log(ngx.ERR,'decrypted_path_hash:',decrypted_path_hash, 'original_hash:',original_hash)
-        process_uri.block_request_and_log("Request blocked: decrypted_path_hash and original_hash not match!")
+        process_uri.block_request_and_log("decrypted_path_hash and original_hash not match!")
+    end
+
+    if query_string and not is_form_request then
+        process_uri.block_request_and_log("dynamic request is not allowed!")
     end
 
 
@@ -113,7 +126,19 @@ elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user
     local res
     local base_url
     if is_form_request then
-        res = ngx.location.capture("/rewrite"..real_uri .. query_string)
+        headers["referer"] = "https://cbs.hdu.edu.cn/main.htm"
+        for k, v in pairs(headers) do
+            ngx.log(ngx.ERR, k, ": ", v)
+        end
+        res = ngx.location.capture("/form" ..real_uri,
+        {
+            method = ngx["HTTP_" .. method],
+            args = ngx.req.get_uri_args(),
+            headers = headers,
+            always_forward_body = true
+        })
+        -- ngx.status = res.status
+        ngx.log(ngx.ERR, 'form_body:',response_handle.decompress_gzip(res.body))
         base_url = scheme .. "://" .. host .. real_uri .. query_string
     else    
         res = ngx.location.capture("/rewrite"..real_uri)

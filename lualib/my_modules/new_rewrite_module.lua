@@ -100,12 +100,13 @@ local function process_absolute_url(key, url_string, type)
         end
     else
         -- ngx.log(ngx.ERR, 'it is not protect url')
-        return url_string
+        -- return url_string
     end
 end
 
 local function process_relative_url(key, base_url, relative_path, type)
     local combined_url = url.absolute(base_url, relative_path)
+    -- ngx.log(ngx.ERR, 'relative:',relative_path,' absolute:', combined_url)
     return process_absolute_url(key, combined_url ,type)
 end
 
