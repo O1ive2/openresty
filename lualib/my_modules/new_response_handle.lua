@@ -132,6 +132,8 @@ function  _M.response_handle(response_body, is_first_access, user, content_type,
             expire_time = ngx.time()  + 60 * 60 * 6
         }
 
+        local ip_addr = ngx.var.remote_addr
+        local _ = redis_connector.add_user_ip(user, ip_addr)
         local new_cookie_value = uuid()
         local value_cookie = "value="..new_cookie_value .. '; Path=/; HttpOnly; Expires=' .. ngx.cookie_time(ngx.time() + 60 * 60 * 24 * 365)
         ngx.header['Set-Cookie'] = value_cookie
@@ -144,6 +146,7 @@ function  _M.response_handle(response_body, is_first_access, user, content_type,
     else
         user_info = redis_connector.get_info_by_user(user)
         user_info.access_count =user_info.access_count + 1
+        user_info.expire_time = ngx.time()  + 60 * 60 * 6
     end
 
     local _, addERR = redis_connector.add_user_info(user, user_info)

@@ -95,12 +95,12 @@ elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user
     end
 
     if user_info and user_info.access_count > 10000 then
-        ngx.log(ngx.ERR, 'user access_count is max!')
+        ngx.log(ngx.ERR, 'The number of user visits to reach the maximum.')
         ngx.exit(ngx.HTTP_FORBIDDEN)
     end
 
     if user_info and ngx.time() > user_info.expire_time then
-        ngx.log(ngx.ERR, 'user is expire!')
+        ngx.log(ngx.ERR, 'The user identity has expired.')
         ngx.exit(ngx.HTTP_FORBIDDEN)
     end
 
@@ -110,14 +110,20 @@ elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user
     
     local decrypted_path_hash = real_uri and ngx.md5(real_uri)
 
-    if decrypted_path_hash ~= original_hash then
-        ngx.log(ngx.ERR,'decrypted_path_hash:',decrypted_path_hash, 'original_hash:',original_hash)
-        process_uri.block_request_and_log("decrypted_path_hash and original_hash not match!")
+    if not process_uri.is_ip_user_match(user) then
+        process_uri.block_request_and_log("User and IP do not match.")
     end
 
     if query_string and not is_form_request then
-        process_uri.block_request_and_log("dynamic request is not allowed!")
+        process_uri.block_request_and_log("Dynamic requests are not allowed.")
     end
+
+    if decrypted_path_hash ~= original_hash then
+        ngx.log(ngx.ERR,'decrypted_path_hash:',decrypted_path_hash, 'original_hash:',original_hash)
+        process_uri.block_request_and_log("The hash value of the decryption path does not match the original hash value.")
+    end
+
+
 
 
     parsed_url.path = real_uri
@@ -126,7 +132,18 @@ elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user
     local res
     local base_url
     if is_form_request then
-        headers["referer"] = "https://cbs.hdu.edu.cn/main.htm"
+        headers["referer"] = nil
+        -- ngx.ctx.modified_referer = "https://cbs.hdu.edu.cn/main.htm"
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+        headers["Accept-Encoding"] = "gzip, deflate"
+        headers["Upgrade-Insecure-Requests"] = "1"
+        headers["Host"] = "rws.com"
+        headers["Origin"] = "http://rws.com"
+        headers["Referer"] = "https://cbs.hdu.edu.cn/main.htm"
+        headers["vary"] = "accept-encoding"
+        headers["X-Frame-Options"] = "SAMEORIGIN"
+        headers["X-Application-Context"] = "application"
+        -- headers["Postman-Token"] = "66b0f2e2-d3cd-4025-9098-e8f8fe267673"
         for k, v in pairs(headers) do
             ngx.log(ngx.ERR, k, ": ", v)
         end
