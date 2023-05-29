@@ -64,7 +64,6 @@ if redis_connector.is_url_in_whitelist(request_url) then
             local response_body = res.body
 
             if is_gzip then
-                -- ngx.log(ngx.ERR,'it is gzip decompress')
                 response_body = response_handle.decompress_gzip(response_body)
             end
                 
@@ -104,15 +103,16 @@ elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user
         ngx.exit(ngx.HTTP_FORBIDDEN)
     end
 
+    if not process_uri.is_ip_user_match(user) then
+        process_uri.block_request_and_log("User and IP do not match.")
+    end
+
     local key, err = redis_connector.get_key_by_user(user)
     -- ngx.log(ngx.ERR, 'encrypted:',encrypted)
     local real_uri = encrypted and rewrite_module.decrypt_path(key, encrypted)
     
     local decrypted_path_hash = real_uri and ngx.md5(real_uri)
-
-    if not process_uri.is_ip_user_match(user) then
-        process_uri.block_request_and_log("User and IP do not match.")
-    end
+    
 
     if query_string and not is_form_request then
         process_uri.block_request_and_log("Dynamic requests are not allowed.")
@@ -191,5 +191,5 @@ elseif value_cookie and redis_connector.get_user_by_cookie(value_cookie) == user
     ngx.ctx.modified_headers = res.header
     ngx.ctx.modified_body = modified_body
 else
-    process_uri.block_request_and_log("request_url not in whitelist and user not match the cookie")
+    process_uri.block_request_and_log("The user does not exist.")
 end

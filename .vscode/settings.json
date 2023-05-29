@@ -4,6 +4,7 @@
     ],
     "Lua.runtime.version": "LuaJIT",
     "Lua.workspace.library": [
-        "${3rd}/OpenResty/library"
+        "${3rd}/OpenResty/library",
+        "/home/oliver/.vscode/extensions/sumneko.lua-3.6.20-linux-x64/server/meta/1fd0670b"
     ]
 }
